@@ -1,8 +1,15 @@
 #!/bin/bash
 # =============================================================================
 # autorefine — Security audit script
-# Run before any push to verify no sensitive content exists in tracked files.
+# Scans tracked files for API keys, credentials, and custom blocked terms.
 # Usage: bash scripts/audit.sh
+#
+# Custom blocklist: create .audit-blocklist with one regex pattern per line.
+# These are YOUR proprietary terms that should never appear in the repo.
+# Example .audit-blocklist:
+#   MyCompanyName
+#   internal-api\.mycompany\.com
+#   MYCOMPANY_
 # =============================================================================
 
 set -e
@@ -23,9 +30,8 @@ scan_pattern() {
     local desc="$1"
     local pattern="$2"
     local matches
-    matches=$(grep -rlE "$pattern" $ALL_FILES 2>/dev/null | grep -v 'scripts/audit.sh' | grep -v 'scripts/install-hooks.sh' || true)
+    matches=$(grep -rlE "$pattern" $ALL_FILES 2>/dev/null | grep -v 'scripts/audit.sh' | grep -v 'scripts/install-hooks.sh' | grep -v '.audit-blocklist' || true)
     if [ -n "$matches" ]; then
-        # Filter out commented lines in .env.example
         local real_matches=""
         for f in $matches; do
             if [ "$f" = ".env.example" ]; then
@@ -43,17 +49,25 @@ scan_pattern() {
     fi
 }
 
-# --- Scan for sensitive patterns ---
+# --- Built-in patterns (always checked) ---
 scan_pattern "API key (sk-*)"        'sk-[a-zA-Z0-9]{20,}'
 scan_pattern "Hardcoded credential"  '(API_KEY|api_key)\s*=\s*["'"'"']?[A-Za-z0-9+/]{30,}'
-scan_pattern "AntHill reference"     'AntHill'
-scan_pattern "Internal org"          'theanthill-ai'
-scan_pattern "Internal endpoint"     'da-ml-openai'
-scan_pattern "Internal env prefix"   'ANTHILL_'
-scan_pattern "Internal DB ref"       'anthill_context'
-scan_pattern "Internal repo"         'context-graph-v[0-9]'
-scan_pattern "BFSI reference"        'BFSI'
-scan_pattern "Internal ticket ID"    'MOBAST-'
+
+# --- Custom blocklist (your proprietary terms) ---
+BLOCKLIST=".audit-blocklist"
+if [ -f "$BLOCKLIST" ]; then
+    echo "Reading custom blocklist from $BLOCKLIST"
+    while IFS= read -r pattern || [ -n "$pattern" ]; do
+        pattern=$(echo "$pattern" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        [ -z "$pattern" ] && continue
+        [[ "$pattern" == \#* ]] && continue
+        scan_pattern "Blocked term: $pattern" "$pattern"
+    done < "$BLOCKLIST"
+else
+    echo -e "${YELLOW}No .audit-blocklist found. Only checking API keys and credentials.${NC}"
+    echo "Create .audit-blocklist with your proprietary terms (one regex per line)."
+    echo ""
+fi
 
 # --- Check .env not tracked ---
 if git ls-files --error-unmatch .env >/dev/null 2>&1; then

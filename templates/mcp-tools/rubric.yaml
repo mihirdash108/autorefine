@@ -1,0 +1,57 @@
+eval_mode: binary
+max_iterations: 4
+cross_doc_weight: 0.0
+
+artifact: example-mcp-tool.md
+
+context: >
+  An MCP tool description for an AI assistant's tool registry. The
+  description must help the agent choose the right tool, use it correctly,
+  and handle errors.
+
+dimensions:
+  disambiguation:
+    description: >
+      Does the description clearly distinguish this tool from similar tools
+      in the registry? A document search tool must explain how it differs
+      from a general web search, a database query, or a file read. The
+      agent sees many tools at once and must pick the right one based on
+      descriptions alone. If two tools could plausibly handle the same
+      request, the descriptions must make the boundary clear.
+    weight: 1.0
+
+  parameter_documentation:
+    description: >
+      Are all parameters documented with types, constraints, defaults,
+      and at least one example value? Missing type information forces the
+      agent to guess (string vs number vs array). Missing constraints
+      lead to invalid calls (passing 1000 when max is 50). Missing
+      defaults cause unnecessary parameter specification. Missing examples
+      force the agent to invent formats.
+    weight: 1.0
+
+  example_coverage:
+    description: >
+      Do examples cover the common use case AND at least one edge case
+      (empty input, error condition, boundary value)? A single happy-path
+      example is insufficient. The agent needs to see how the tool behaves
+      in non-obvious situations to use it correctly in real workflows.
+    weight: 1.0
+
+  error_behavior:
+    description: >
+      Does the description explain what happens on invalid input, missing
+      required parameters, or service failures? The agent must know
+      whether errors return null, throw exceptions, return error objects,
+      or silently fail. Without this, the agent cannot write robust
+      workflows that handle tool failures.
+    weight: 1.0
+
+  return_value_documentation:
+    description: >
+      Is the return format documented? Does it describe the structure
+      (object, array, string), the fields and their types, and the
+      possible shapes for success vs error? The agent must parse the
+      return value to use it in subsequent steps. Undocumented return
+      values force trial-and-error.
+    weight: 1.0

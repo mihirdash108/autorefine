@@ -1,13 +1,32 @@
-# Example Document
+# CloudSync — File Synchronization for Teams
 
-This is a placeholder artifact for autorefine. Replace this file with the document you want to refine.
+## What it does
 
-## Getting started
+CloudSync is a file synchronization solution that helps teams keep their files in sync across devices. It's fast, reliable, and secure.
 
-1. Delete this file
-2. Copy your document(s) into `artifacts/`
-3. Configure `rubric.yaml` with dimensions appropriate for your document
-4. Run `uv run evaluate.py --baseline` to establish baseline scores
-5. Start the refinement loop with your AI coding agent
+## Features
 
-See the README for detailed instructions and example rubrics in `templates/`.
+- Real-time file sync across all devices
+- End-to-end encryption
+- Version history
+- Team sharing and permissions
+- Works with Windows, Mac, and Linux
+- Integration with popular tools
+
+## Why CloudSync
+
+Unlike other solutions, CloudSync is built for teams. It handles large files efficiently and provides great collaboration features. Our customers love it.
+
+## Pricing
+
+- Starter: $10/user/month
+- Business: $25/user/month
+- Enterprise: Contact us
+
+## Getting Started
+
+Sign up at our website and download the desktop app. Installation takes less than 5 minutes.
+
+## Security
+
+We take security seriously. All files are encrypted in transit and at rest. We comply with SOC 2 and GDPR.

@@ -11,6 +11,7 @@
 eval_mode: binary
 scale_range: 5
 judge_model: gpt-4o
+max_iterations: 5
 cross_doc_weight: 0.0
 placeholder_mocks: {}
 
@@ -23,24 +24,23 @@ artifacts:
       who has seen dozens of similar pages and will skim before reading.
 
     dimensions:
-      value_proposition:
+      buyer_clarity:
         weight: 0.25
         pass: >
-          The core value proposition is stated in the first two paragraphs.
-          It answers "what problem does this solve?" and "why should I care?"
-          in concrete, measurable terms — not abstract promises like
-          "transform your workflow" or "unlock the power of AI."
+          A buyer understands within 30 seconds: what problem this solves,
+          who it's for, and why existing solutions fail. Leads with business
+          impact, not technical architecture.
         fail: >
-          The value proposition is missing, buried below the fold, or
-          stated in vague buzzwords that could describe any product in
-          the category.
+          Opens with features or technical details. The buyer cannot tell
+          why this matters to their organization without reading the entire
+          document.
         description: >
-          Does the page clearly communicate what problem the product solves
-          and why the reader should care, within the first two paragraphs?
+          Can a buyer understand within 30 seconds what problem this solves,
+          who it's for, and why existing solutions fail?
         anchors:
-          1: "No clear value proposition. Generic buzzwords only."
-          3: "Value proposition exists but is vague or buried past the opening."
-          5: "Specific, measurable value proposition in the first two paragraphs."
+          1: "Opens with features or architecture. Buyer cannot tell why this matters."
+          3: "Problem and audience are mentioned but buried or vague. Business impact unclear."
+          5: "Within 30 seconds: problem, audience, and why existing solutions fail are all clear. Business impact leads."
 
       specificity:
         weight: 0.20
@@ -99,6 +99,25 @@ artifacts:
           1: "Wall of text. No visual hierarchy. Skimming yields nothing."
           3: "Some structure but key info is buried in paragraphs."
           5: "Informative headers, clear hierarchy. 15-second skim captures the core message."
+
+      information_security:
+        weight: 0.15
+        pass: >
+          Communicates product capabilities without revealing proprietary
+          implementation details. Uses outcome language ("processes 1M
+          records in under 5 seconds") not implementation language ("uses
+          a B-tree index with page size 8KB").
+        fail: >
+          Exposes internal architecture, specific algorithm parameters,
+          database schemas, or implementation details that would help a
+          competitor replicate the product.
+        description: >
+          Does the document communicate capabilities without exposing
+          proprietary implementation details?
+        anchors:
+          1: "Exposes internal architecture, schemas, or algorithm parameters."
+          3: "Mostly outcome-focused but some implementation details leak through."
+          5: "Pure outcome language. Capabilities clear, implementation fully abstracted."
 
       voice_and_authenticity:
         weight: 0.20

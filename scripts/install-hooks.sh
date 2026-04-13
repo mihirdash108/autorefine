@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Install git hooks for autorefine OSS repo.
+# Install git hooks for autorefine.
 # Run once after cloning: bash scripts/install-hooks.sh
 # =============================================================================
 
@@ -31,13 +31,19 @@ if echo "$STAGED_CONTENT" | grep -qE '(API_KEY|api_key)\s*=\s*["\x27]?[A-Za-z0-9
     exit 1
 fi
 
-# Block proprietary terms
-for term in "AntHill" "theanthill-ai" "da-ml-openai" "ANTHILL_" "anthill_context"; do
-    if echo "$STAGED_CONTENT" | grep -qF "$term"; then
-        echo "BLOCKED: Proprietary term '$term' in staged changes."
-        exit 1
-    fi
-done
+# Block custom terms from .audit-blocklist
+BLOCKLIST="$(git rev-parse --show-toplevel)/.audit-blocklist"
+if [ -f "$BLOCKLIST" ]; then
+    while IFS= read -r pattern || [ -n "$pattern" ]; do
+        pattern=$(echo "$pattern" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        [ -z "$pattern" ] && continue
+        [[ "$pattern" == \#* ]] && continue
+        if echo "$STAGED_CONTENT" | grep -qE "$pattern"; then
+            echo "BLOCKED: Custom blocked term '$pattern' in staged changes."
+            exit 1
+        fi
+    done < "$BLOCKLIST"
+fi
 
 exit 0
 HOOK
@@ -50,7 +56,8 @@ cat > "$HOOKS_DIR/pre-push" << 'HOOK'
 #!/bin/bash
 # Scan all tracked files before push
 echo "Running pre-push security scan..."
-if bash scripts/audit.sh; then
+REPO_ROOT=$(git rev-parse --show-toplevel)
+if bash "$REPO_ROOT/scripts/audit.sh"; then
     exit 0
 else
     echo "Push blocked. Run 'bash scripts/audit.sh' for details."
@@ -61,4 +68,10 @@ HOOK
 chmod +x "$HOOKS_DIR/pre-push"
 echo "Installed pre-push hook."
 
+echo ""
 echo "Done. Hooks will block sensitive content from commits and pushes."
+if [ ! -f "$(git rev-parse --show-toplevel)/.audit-blocklist" ]; then
+    echo ""
+    echo "TIP: Create .audit-blocklist with your proprietary terms."
+    echo "See .audit-blocklist.example for the format."
+fi

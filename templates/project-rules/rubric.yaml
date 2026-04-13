@@ -1,0 +1,57 @@
+eval_mode: binary
+max_iterations: 5
+cross_doc_weight: 0.0
+
+artifact: example-claude-md.md
+
+context: >
+  A CLAUDE.md project instruction file that defines rules and conventions
+  for an AI coding assistant. Rules should be clear, actionable, internally
+  consistent, and explain their rationale.
+
+dimensions:
+  rule_clarity:
+    description: >
+      Is each rule unambiguous? Could two different agents interpret the
+      same rule differently? Vague rules like "be careful with databases"
+      fail. Specific rules like "wait for each DB command to complete
+      before issuing the next" pass. Test each rule by asking: if two
+      agents read this rule independently, would they behave identically?
+    weight: 1.0
+
+  actionability:
+    description: >
+      Can each rule be followed mechanically? Rules requiring judgment
+      the agent lacks ("use your best judgment", "be reasonable") fail.
+      Rules with clear decision criteria ("if the file has more than 200
+      lines, split it") pass. Every rule should translate into a
+      concrete behavior the agent either does or does not do.
+    weight: 1.0
+
+  internal_consistency:
+    description: >
+      Do any rules conflict with each other? Minor tensions are acceptable
+      if priority ordering resolves them (e.g., "prefer X, but if Y then
+      do Z instead"). Direct contradictions fail — for example, one rule
+      says "always commit after changes" while another says "never commit
+      unless asked." Check all pairs of rules that touch the same topic.
+    weight: 1.0
+
+  edge_case_coverage:
+    description: >
+      Do rules cover the common failure modes they were written for?
+      A rule about "don't modify production config" should also address
+      what to do when production config legitimately needs to change.
+      A rule about "run tests before committing" should address what to
+      do when tests fail. Each rule should handle its own exceptions.
+    weight: 1.0
+
+  explains_why:
+    description: >
+      Does each rule explain its rationale so the agent can handle
+      unstated edge cases? "Never run parallel DB commands" is weak
+      because the agent cannot generalize it. "Never run parallel DB
+      commands — overlapping commands cause deadlocks" is strong because
+      the agent can apply the same principle (avoid deadlocks) to novel
+      situations the rule does not explicitly cover.
+    weight: 1.0

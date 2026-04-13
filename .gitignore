@@ -12,6 +12,7 @@ checkpoints/
 .autorefine-worktree/
 tried_strategies.log
 REPORT.md
+.audit-blocklist
 .eval_cost
 __pycache__/
 *.pyc

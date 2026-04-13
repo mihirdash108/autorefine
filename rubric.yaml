@@ -11,7 +11,8 @@
 eval_mode: binary      # "binary" (recommended) or "scale"
 scale_range: 5         # 1-N scale (only used in scale mode; research shows 5 is optimal)
 judge_model: gpt-4o    # Override with AUTOREFINE_MODEL env var
-cross_doc_weight: 0.15 # Weight of cross-document consistency (0 to disable)
+cross_doc_weight: 0.0  # Weight of cross-document consistency (0 to disable for single artifact)
+max_iterations: 10     # Stop after this many iterations (convergence may stop earlier)
 
 # Mock values for placeholders — the judge sees these instead of {PLACEHOLDER}
 # Prevents unfair penalization for template variables not yet filled
@@ -23,73 +24,51 @@ placeholder_mocks: {}
 # ---------------------------------------------------------------------------
 # Artifact evaluation dimensions
 # ---------------------------------------------------------------------------
+# This example evaluates a sample product page (artifacts/example.md).
+# Replace with your own artifact and dimensions, or use a template:
+#   cp templates/llm-skill/rubric.yaml .
 
 artifacts:
   example.md:
     weight: 1.0
     context: >
-      A document being iteratively refined. Replace this context with
-      a description of your document's purpose and target audience.
+      A product landing page for CloudSync, a file synchronization tool
+      for teams. Target audience: IT decision-makers at mid-size companies
+      evaluating sync solutions. They need specifics, not marketing fluff.
 
     dimensions:
-      clarity:
-        weight: 0.25
+      specificity:
         pass: >
-          The document's main point is immediately clear. A reader
-          understands the purpose and key takeaway within 30 seconds.
+          Every claim is backed by a concrete number, comparison, or specific
+          example. "Fast" is replaced with "syncs 10GB in under 2 minutes."
+          "Better than competitors" is replaced with specific feature gaps.
         fail: >
-          The main point is buried, unclear, or requires reading the
-          full document to understand.
-        description: >
-          How quickly and clearly does the document communicate its
-          main point?
-        anchors:
-          1: "Main point is completely unclear. Reader cannot determine document's purpose."
-          3: "Main point exists but is buried or requires significant reading to find."
-          5: "Main point is immediately clear. Reader knows purpose and takeaway in 30 seconds."
+          Contains vague claims like "fast," "reliable," "great collaboration
+          features," or "our customers love it" without supporting evidence.
 
-      completeness:
-        weight: 0.25
+      buyer_clarity:
         pass: >
-          All necessary information is present. No obvious gaps where
-          a reader would expect content. Every claim is supported.
+          A reader understands within 30 seconds: what problem this solves,
+          who it's for, and why existing solutions are insufficient. Leads
+          with the buyer's pain, not the product's features.
         fail: >
-          Missing key information, unsupported claims, or obvious gaps
-          in the argument or explanation.
-        description: >
-          Does the document contain all the information a reader needs?
-        anchors:
-          1: "Major gaps. Key information is missing entirely."
-          3: "Most information present but some claims are unsupported."
-          5: "Complete. Every claim supported, no gaps where content is expected."
+          Opens with feature lists or generic statements. The reader cannot
+          tell why they should care or what makes this different from Dropbox,
+          Google Drive, or OneDrive without reading the entire page.
 
-      structure:
-        weight: 0.25
+      evidence_quality:
         pass: >
-          Logical organization. Sections flow naturally. Information
-          is easy to find. Headers and formatting aid comprehension.
+          Claims are backed by benchmarks, customer counts, specific integrations
+          named, compliance certifications with details. No unsupported superlatives.
         fail: >
-          Disorganized. Information is scattered or in unexpected places.
-          Reader has to jump around to follow the argument.
-        description: >
-          Is the document well-organized? Do sections flow logically?
-        anchors:
-          1: "Disorganized. Information scattered, sections out of order."
-          3: "Generally organized but some information is misplaced."
-          5: "Clean logical flow. Information is exactly where you'd expect it."
+          Uses phrases like "our customers love it," "we take security seriously,"
+          or "popular tools" without naming specific customers, tools, or metrics.
 
       conciseness:
-        weight: 0.25
         pass: >
-          Information-dense. No filler, redundancy, or boilerplate.
-          Every sentence adds value.
+          Every sentence adds information. No boilerplate ("we take X seriously"),
+          no redundancy, no filler sections. Removing any paragraph would lose
+          substantive content.
         fail: >
-          Contains filler, unnecessary repetition, or boilerplate
-          sections that add no information.
-        description: >
-          Is the document information-dense? Could content be cut
-          without losing substance?
-        anchors:
-          1: "Padded with filler. Same points repeated in different words."
-          3: "Mostly substantive but some paragraphs could be cut."
-          5: "Every sentence carries information. Nothing to cut."
+          Contains boilerplate, filler, or sections that repeat information
+          already stated elsewhere in the document.

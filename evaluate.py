@@ -159,6 +159,41 @@ def load_rubric():
         sys.exit(2)
 
 
+def validate_rubric(rubric, artifact_files, eval_mode):
+    """Validate rubric schema before making any API calls."""
+    errors = []
+    artifact_configs = rubric.get("artifacts", {})
+    if not artifact_configs:
+        errors.append("rubric.yaml: no 'artifacts' section found")
+
+    available = {f.name for f in artifact_files}
+    for name in artifact_configs:
+        if name not in available:
+            errors.append(f"rubric.yaml: artifact '{name}' not found in artifacts/ (available: {', '.join(sorted(available))})")
+
+    for name, config in artifact_configs.items():
+        dims = config.get("dimensions", {})
+        if not dims:
+            errors.append(f"rubric.yaml: artifact '{name}' has no dimensions defined")
+            continue
+        for dname, dconfig in dims.items():
+            if eval_mode == "binary":
+                if not dconfig.get("pass"):
+                    errors.append(f"rubric.yaml: {name}.{dname} missing 'pass' criteria (required for binary mode)")
+            else:
+                if not dconfig.get("description"):
+                    errors.append(f"rubric.yaml: {name}.{dname} missing 'description' (required for scale mode)")
+            w = dconfig.get("weight")
+            if w is not None and not isinstance(w, (int, float)):
+                errors.append(f"rubric.yaml: {name}.{dname} weight must be a number, got: {type(w).__name__}")
+
+    if errors:
+        print("Rubric validation failed:")
+        for e in errors:
+            print(f"  - {e}")
+        sys.exit(1)
+
+
 # ---------------------------------------------------------------------------
 # LLM call abstraction
 # ---------------------------------------------------------------------------
@@ -597,22 +632,70 @@ def main():
     parser.add_argument("--baseline", action="store_true", help="Record baseline (no comparison)")
     parser.add_argument("--verbose", action="store_true", help="Show per-dimension rationales")
     parser.add_argument("--budget-cap", type=float, default=DEFAULT_BUDGET_CAP, help="Max USD budget")
+    parser.add_argument("--dry-run", action="store_true", help="Validate rubric and show execution plan without making API calls")
     args = parser.parse_args()
+
+    rubric = load_rubric()
+    eval_mode = rubric.get("eval_mode", "binary")
+    scale_max = rubric.get("scale_range", 5)
+    cross_doc_weight = rubric.get("cross_doc_weight", 0.15)
+    max_iterations = rubric.get("max_iterations", 10)
+
+    # --- Discover artifacts early (needed for validation and dry-run) ---
+    artifact_files = sorted(f for f in ARTIFACTS_DIR.glob("*") if f.is_file() and not f.name.startswith("."))
+    if not artifact_files:
+        print("ERROR: No files found in artifacts/")
+        sys.exit(1)
+
+    # --- Validate rubric schema ---
+    validate_rubric(rubric, artifact_files, eval_mode)
+
+    # --- Dry run: validate and show plan, no API calls ---
+    if args.dry_run:
+        artifact_configs = rubric.get("artifacts", {})
+        total_dims = sum(len(artifact_configs.get(f.name, {}).get("dimensions", {})) for f in artifact_files)
+        has_cross_doc = len(artifact_files) > 1
+        total_calls = (total_dims + (1 if has_cross_doc else 0)) * EVAL_REPEATS
+        cost_estimate = total_calls * 0.01  # rough estimate per call
+
+        backend = detect_backend()
+        print(f"Backend: {backend or '(not configured — set API key in .env)'}")
+        print(f"Mode: {eval_mode} | Scale: 1-{scale_max} | Max iterations: {max_iterations}")
+        print(f"Cross-doc weight: {cross_doc_weight}" if has_cross_doc else "Cross-doc: disabled (single artifact)")
+        print(f"\nArtifacts ({len(artifact_files)}):")
+        for af in artifact_files:
+            config = artifact_configs.get(af.name, {})
+            dims = config.get("dimensions", {})
+            print(f"  {af.name}: {len(dims)} dimensions ({', '.join(dims.keys())})")
+            if not dims:
+                print(f"    WARNING: no dimensions configured for this artifact")
+        print(f"\nExecution plan:")
+        print(f"  {total_dims} dimensions x {EVAL_REPEATS} evals = {total_dims * EVAL_REPEATS} judge calls")
+        if has_cross_doc:
+            print(f"  + {EVAL_REPEATS} cross-doc consistency calls")
+        print(f"  Total API calls per iteration: {total_calls}")
+        print(f"  Estimated cost per iteration: ~${cost_estimate:.2f}")
+        print(f"  Budget cap: ${args.budget_cap:.2f}")
+        print(f"  Max iterations: {max_iterations}")
+        print(f"\nValidation: PASSED")
+        sys.exit(0)
 
     # --- Acquire lock ---
     acquire_eval_lock()
     atexit.register(release_eval_lock)
 
-    rubric = load_rubric()
     client, backend = create_client()
     model = get_model(rubric, backend)
     state = load_state()
     placeholder_mocks = rubric.get("placeholder_mocks", {})
-    eval_mode = rubric.get("eval_mode", "binary")
-    scale_max = rubric.get("scale_range", 5)
-    cross_doc_weight = rubric.get("cross_doc_weight", 0.15)
 
     print(f"Backend: {backend} | Model: {model} | Mode: {eval_mode}")
+
+    # --- Max iterations check ---
+    if state.get("iteration", 0) >= max_iterations and not args.baseline:
+        print(f"Max iterations ({max_iterations}) reached.")
+        print("verdict:             CONVERGED")
+        sys.exit(0)
 
     if state["cumulative_cost_usd"] >= args.budget_cap:
         print(f"ERROR: Budget cap ${args.budget_cap:.2f} reached (spent: ${state['cumulative_cost_usd']:.2f})")
@@ -639,12 +722,8 @@ def main():
         except FileNotFoundError:
             pass  # Not a git repo — skip check
 
-    # --- Discover artifacts ---
+    # --- Artifact configs (artifacts already discovered above) ---
     artifact_configs = rubric.get("artifacts", {})
-    artifact_files = sorted(f for f in ARTIFACTS_DIR.glob("*") if f.is_file() and not f.name.startswith("."))
-    if not artifact_files:
-        print("ERROR: No files found in artifacts/")
-        sys.exit(1)
 
     # --- Baseline placeholder snapshot ---
     baseline_snapshot = load_baseline_placeholders()

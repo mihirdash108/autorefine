@@ -1,5 +1,7 @@
 # autorefine
 
+> **New here?** Start with [QUICKSTART.md](QUICKSTART.md) — first score in 5 minutes.
+
 **Autonomous refinement of prompts, skills, and documents using an LLM-as-judge evaluation loop.**
 
 You give it a text artifact — a system prompt, an agent skill, a product page, a technical doc. You define what "good" means in a YAML rubric. An AI agent refines it iteratively: each change is evaluated by a separate LLM judge, kept if it improves the score, discarded if it doesn't. You walk away and come back to a better artifact and a full experiment log.
@@ -40,10 +42,10 @@ Every accepted change is a git commit. Every rejected change is automatically re
 
 ### Phase 1: Setup (5 minutes)
 
-Clone, add your API key, add your documents.
+**Prerequisites:** Python 3.12+, [uv](https://docs.astral.sh/uv/), one LLM API key (OpenAI, Azure, Anthropic, or Ollama). macOS and Linux. Anthropic users also run `uv add anthropic` after setup.
 
 ```bash
-git clone https://github.com/yourusername/autorefine.git
+git clone https://github.com/mihirdash108/autorefine.git
 cd autorefine
 uv sync
 cp .env.example .env     # add your OpenAI/Anthropic/Azure key

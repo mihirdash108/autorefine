@@ -1,0 +1,10 @@
+# autorefine — Custom audit blocklist
+# Add your proprietary terms here (one regex pattern per line).
+# These terms will be blocked from commits and pushes.
+# Lines starting with # are comments.
+#
+# Examples:
+# MyCompanyName
+# internal-api\.mycompany\.com
+# MYCOMPANY_
+# mycompany-secret-project

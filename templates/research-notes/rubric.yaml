@@ -12,6 +12,7 @@
 eval_mode: binary
 scale_range: 5
 judge_model: gpt-4o
+max_iterations: 5
 cross_doc_weight: 0.0
 placeholder_mocks: {}
 

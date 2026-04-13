@@ -12,6 +12,7 @@
 eval_mode: binary
 scale_range: 5
 judge_model: gpt-4o
+max_iterations: 8
 cross_doc_weight: 0.0
 placeholder_mocks: {}
 
@@ -133,3 +134,21 @@ artifacts:
           1: "No tone guidance or generic platitudes only."
           3: "Some tone guidance but not specific enough to enforce consistency."
           5: "Specific tone definition appropriate to the use case. Consistent voice guaranteed."
+
+      prompt_injection_resistance:
+        weight: 0.15
+        pass: >
+          The prompt includes explicit guardrails against injection:
+          ignoring user attempts to override instructions, not executing
+          code from user input, and maintaining role boundaries even
+          when challenged.
+        fail: >
+          No guardrails against prompt injection. A user could manipulate
+          the prompt by saying "ignore previous instructions" or similar.
+        description: >
+          Does the prompt include guardrails against prompt injection
+          and instruction override attempts?
+        anchors:
+          1: "No injection guardrails. Prompt is fully manipulable."
+          3: "Some guardrails but gaps remain — role boundaries or code execution not covered."
+          5: "Comprehensive injection resistance. Role boundaries, instruction override, and code execution all guarded."

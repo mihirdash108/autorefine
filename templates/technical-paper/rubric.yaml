@@ -12,6 +12,7 @@
 eval_mode: binary
 scale_range: 5
 judge_model: gpt-4o
+max_iterations: 7
 cross_doc_weight: 0.0
 placeholder_mocks: {}
 
@@ -107,6 +108,25 @@ artifacts:
           1: "No limitations disclosed. Reads as pure advocacy."
           3: "Some limitations mentioned but feel perfunctory or incomplete."
           5: "Transparent about limitations, failure cases, and assumptions. Reader sees the full picture."
+
+      information_security:
+        weight: 0.15
+        pass: >
+          Methodology is transparent enough for credibility and claim
+          verification, but implementation details are abstracted. Uses
+          "hierarchical clustering" not "Leiden with resolution=1.2,
+          max_cluster_size=10."
+        fail: >
+          Exposes specific algorithm parameters, internal function names,
+          database schemas, or configuration values that would let a
+          competitor replicate the system.
+        description: >
+          Does the paper balance methodological transparency with
+          protection of proprietary implementation details?
+        anchors:
+          1: "Exposes algorithm parameters, function names, or config values."
+          3: "Mostly abstracted but some proprietary details leak through."
+          5: "Methodology is transparent for credibility. All implementation details are properly abstracted."
 
       organization:
         weight: 0.20

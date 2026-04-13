@@ -41,8 +41,8 @@ LOOP FOREVER:
 6. Read verdict: `grep "^verdict:" eval.log`
 7. Act on verdict:
    - **KEEP** — Change improved the score. Next iteration.
-   - **DISCARD** — Didn't help. Revert: `git reset --hard HEAD~1`
-   - **INVALID** — Placeholder removed or artifact broken. Revert and fix.
+   - **DISCARD** — Didn't help. evaluate.py handles reverts automatically on DISCARD. Never run git reset yourself.
+   - **INVALID** — Placeholder removed or artifact broken. evaluate.py handles reverts automatically on DISCARD. Never run git reset yourself. Fix the issue in a new commit.
    - **CONVERGED** — Scores plateaued. **Stop** and report final results.
    - **BASELINE** — First run recorded. Begin refining.
 8. If exit code 2 — infrastructure error (API timeout). Wait 30s, retry step 5. Do NOT discard.
@@ -74,6 +74,13 @@ LOOP FOREVER:
 - **No padding.** Don't add boilerplate ("About This Document", "Executive Summary", "Glossary") to game scores.
 - **No corporate voice.** Write like the person who built it — direct, specific, opinionated. Not like a press release.
 - **Don't game the rubric.** Write for the actual human buyer, not the judge prompt.
-- **Git discipline.** Always commit before evaluating. On DISCARD: `git reset --hard HEAD~1`. Never `git clean`.
+- **Git discipline.** Always commit before evaluating. evaluate.py handles reverts automatically on DISCARD. Never run git reset yourself.
+
+## Anti-patterns
+
+- Don't add boilerplate sections (Executive Summary, Glossary)
+- Don't rewrite in corporate marketing voice
+- Don't remove honest limitations -- they build credibility
+- Don't add claims without supporting evidence
 
 **NEVER STOP** unless the verdict is CONVERGED. Do not pause to ask the human. They may be away. If you run out of ideas, use `--verbose` to get per-dimension rationales, then try new angles.
