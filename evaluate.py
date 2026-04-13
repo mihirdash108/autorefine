@@ -25,6 +25,7 @@ Inspired by karpathy/autoresearch (MIT License).
 """
 
 import argparse
+import atexit
 import json
 import os
 import re
@@ -32,6 +33,7 @@ import shutil
 import statistics
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import yaml
@@ -48,6 +50,7 @@ RUBRIC_PATH = ROOT_DIR / "rubric.yaml"
 STATE_PATH = ROOT_DIR / "eval_state.json"
 RESULTS_PATH = ROOT_DIR / "results.tsv"
 HISTORY_PATH = ROOT_DIR / "eval_history.jsonl"
+PRE_EVAL_COMMIT_PATH = ROOT_DIR / ".pre_eval_commit"
 BASELINE_SNAPSHOTS_PATH = ROOT_DIR / ".baseline_placeholders.json"
 
 MIN_ARTIFACT_BYTES = 100
@@ -492,8 +495,11 @@ def load_state():
 
 
 def save_state(state):
-    with open(STATE_PATH, "w") as f:
+    """Atomic write: write to .tmp then rename to prevent corruption on crash."""
+    tmp = STATE_PATH.with_suffix(".json.tmp")
+    with open(tmp, "w") as f:
         json.dump(state, f, indent=2)
+    os.rename(tmp, STATE_PATH)
 
 
 def get_git_commit():
@@ -545,6 +551,38 @@ def append_history(entry):
         f.write(json.dumps(entry) + "\n")
 
 
+# ---------------------------------------------------------------------------
+# Eval lock (prevent concurrent evaluations)
+# ---------------------------------------------------------------------------
+
+EVAL_LOCK_PATH = ROOT_DIR / ".eval.lock"
+EVAL_LOCK_TIMEOUT = 60  # seconds
+
+
+def acquire_eval_lock():
+    """Acquire eval lock. Fail if another evaluation is running."""
+    if EVAL_LOCK_PATH.exists():
+        try:
+            lock_age = time.time() - EVAL_LOCK_PATH.stat().st_mtime
+            if lock_age < EVAL_LOCK_TIMEOUT:
+                print(f"ERROR: Another evaluation is running (lock age: {lock_age:.0f}s)")
+                print("If this is stale, delete .eval.lock manually.")
+                sys.exit(2)
+            else:
+                print(f"WARNING: Stale lock file ({lock_age:.0f}s old). Overriding.")
+        except OSError:
+            pass
+    EVAL_LOCK_PATH.write_text(str(os.getpid()))
+
+
+def release_eval_lock():
+    """Release eval lock."""
+    try:
+        EVAL_LOCK_PATH.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def compute_cost(model, input_tokens, output_tokens):
     profile = COST_PROFILES.get(model, COST_PROFILES["default"])
     return (input_tokens / 1_000_000) * profile["input"] + (output_tokens / 1_000_000) * profile["output"]
@@ -560,6 +598,10 @@ def main():
     parser.add_argument("--verbose", action="store_true", help="Show per-dimension rationales")
     parser.add_argument("--budget-cap", type=float, default=DEFAULT_BUDGET_CAP, help="Max USD budget")
     args = parser.parse_args()
+
+    # --- Acquire lock ---
+    acquire_eval_lock()
+    atexit.register(release_eval_lock)
 
     rubric = load_rubric()
     client, backend = create_client()
@@ -790,12 +832,18 @@ def main():
 
     # --- Auto-revert on DISCARD or CONVERGED ---
     if verdict in ("DISCARD", "CONVERGED"):
+        # Revert to specific SHA (written by supervisor) or fall back to HEAD~1
+        revert_target = "HEAD~1"
+        if PRE_EVAL_COMMIT_PATH.exists():
+            saved_sha = PRE_EVAL_COMMIT_PATH.read_text().strip()
+            if saved_sha:
+                revert_target = saved_sha
         try:
             subprocess.run(
-                ["git", "reset", "--hard", "HEAD~1"],
+                ["git", "reset", "--hard", revert_target],
                 capture_output=True, text=True, cwd=ROOT_DIR,
             )
-            print(f"Auto-reverted: git reset --hard HEAD~1")
+            print(f"Auto-reverted: git reset --hard {revert_target}")
         except FileNotFoundError:
             print("WARNING: Could not auto-revert (git not found). Revert manually.")
 

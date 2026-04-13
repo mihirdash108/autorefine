@@ -34,34 +34,80 @@ Every accepted change is a git commit. Every rejected change is automatically re
 
 **No GPU required.** Unlike autoresearch (which needs an H100), autorefine only needs an LLM API key. Runs on any machine.
 
-## Quick start
+## How to use
+
+### Phase 1: Setup (5 minutes)
+
+Clone, add your API key, add your documents.
 
 ```bash
-# 1. Clone
 git clone https://github.com/yourusername/autorefine.git
 cd autorefine
-
-# 2. Install dependencies
 uv sync
-
-# 3. Configure your LLM backend
-cp .env.example .env
-# Edit .env with your API key (OpenAI, Azure, Anthropic, or Ollama)
-
-# 4. Add your artifact(s) to artifacts/
+cp .env.example .env     # add your OpenAI/Anthropic/Azure key
 cp your-document.md artifacts/
-
-# 5. Configure your rubric
-# Edit rubric.yaml with dimensions appropriate for your document
-# Or copy a template: cp templates/product-doc/rubric.yaml .
-
-# 6. Run baseline evaluation
-uv run evaluate.py --baseline --verbose
-
-# 7. Start the refinement loop
-# Open your AI coding agent (Claude Code, Codex, Cursor, etc.) and say:
-#   "Read program.md and let's kick off a refinement run."
 ```
+
+### Phase 2: Define quality (with Claude Code)
+
+Open Claude Code in the autorefine directory and configure your rubric. This is the creative step — you're defining what "good" means for your document.
+
+```bash
+claude
+```
+
+Then say:
+
+> "I'm refining a product page for enterprise buyers. Help me write a rubric."
+
+Claude reads your document, suggests dimensions, writes `rubric.yaml`. You iterate together — adjust criteria, calibrate with `uv run calibrate.py`, until the rubric matches your intuition about what makes the doc good.
+
+Or start from a template:
+
+```bash
+cp templates/product-doc/rubric.yaml .
+cp templates/product-doc/program.md .
+```
+
+### Phase 3: Run (walk away)
+
+With the Claude Code skill installed:
+
+```
+/autorefine
+```
+
+This single command runs baseline, opens the dashboard, and starts the refinement loop in the background. You continue working. You get notified when it converges.
+
+**Without the skill:** `bash start.sh` does the same thing manually.
+
+**Monitor progress:** Open http://localhost:8501 for the live dashboard, or run `/autorefine status`.
+
+### Installing the Claude Code skill (optional but recommended)
+
+Copy the skill to your Claude Code skills directory:
+
+```bash
+cp -r skill/ ~/.claude/skills/autorefine/
+```
+
+This gives you:
+- `/autorefine` — run the full loop in the background
+- `/autorefine status` — check progress
+- `/autorefine stop` — terminate a running loop
+- `/autorefine resume` — pick up after a crash
+
+## Cost
+
+Be aware of the full cost breakdown:
+
+| Component | Per iteration | 30 iterations |
+|---|---|---|
+| **Judge** (evaluate.py LLM calls) | ~$0.10-0.30 | $3-9 |
+| **Refiner** (Claude Code agent calls) | ~$0.50-2.00 | $15-60 |
+| **Total** | ~$0.60-2.30 | **$18-69** |
+
+The judge cost is tracked in `eval_state.json`. The refiner cost depends on your Claude Code plan and artifact size. Set `--budget-cap` for judge cost control and max iterations for overall cost control.
 
 The agent will create a branch, run the loop autonomously, and stop when scores converge.
 

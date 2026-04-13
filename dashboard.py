@@ -63,6 +63,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>autorefine dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>if (typeof Chart === 'undefined') document.addEventListener('DOMContentLoaded', function() { document.getElementById('app').innerHTML = '<div style="text-align:center;padding:60px;color:#f85149"><h2>Chart.js failed to load</h2><p style="color:#7d8590;margin-top:12px">Check your internet connection, or view raw data at <a href="/api/data" style="color:#58a6ff">/api/data</a></p></div>'; });</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #e6edf3; padding: 20px; }

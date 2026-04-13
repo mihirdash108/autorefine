@@ -5,6 +5,12 @@ eval_history.jsonl
 results.tsv
 checkpoints/
 .baseline_placeholders.json
+.eval.lock
+.pre_eval_commit
+.autorefine.lock
+.autorefine-worktree/
+tried_strategies.log
+REPORT.md
 .eval_cost
 __pycache__/
 *.pyc
