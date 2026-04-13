@@ -18,7 +18,7 @@ echo "=== autorefine ==="
 echo ""
 
 # Check for artifacts
-ARTIFACT_COUNT=$(find artifacts/ -type f ! -name '.*' ! -name 'example.md' 2>/dev/null | wc -l | tr -d ' ')
+ARTIFACT_COUNT=$(find artifacts/ -type f ! -name '.*' 2>/dev/null | wc -l | tr -d ' ')
 if [ "$ARTIFACT_COUNT" -eq 0 ]; then
     echo "ERROR: No artifacts found in artifacts/"
     echo "Add your documents: cp your-doc.md artifacts/"

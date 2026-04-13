@@ -66,7 +66,7 @@ LOOP FOREVER:
 
 **One change per iteration.** One focused edit — rewrite the opening, sharpen a section, restructure a comparison table. Small changes are easier to evaluate.
 
-**Every 10th iteration, try something bold.** Reorder sections, merge content, restructure the information hierarchy. Radical changes escape local optima.
+**Every 3rd iteration, try something bold.** Reorder sections, merge content, restructure the information hierarchy. Radical changes escape local optima.
 
 ## Rules
 

@@ -66,7 +66,7 @@ LOOP FOREVER:
 
 **One change per iteration.** Rewrite one section of instructions, add handling for one edge case class, or tighten one constraint. Small changes are easier to evaluate.
 
-**Every 10th iteration, try something bold.** Restructure the entire prompt, reorder sections by priority, or reframe the model's role. Radical changes escape local optima.
+**Every 3rd iteration, try something bold.** Restructure the entire prompt, reorder sections by priority, or reframe the model's role. Radical changes escape local optima.
 
 **Test by simulation.** Before committing a change, mentally simulate: "If I were a model reading this prompt for the first time, with no prior context, what would I do with input X?" If the answer is ambiguous, the prompt needs more work.
 

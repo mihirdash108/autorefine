@@ -66,7 +66,7 @@ LOOP FOREVER:
 
 **One change per iteration.** Rewrite one methodology section, add context to one set of numbers, restructure one logical dependency. Small changes are easier to evaluate.
 
-**Every 10th iteration, try something bold.** Restructure the entire argument flow, merge redundant sections, or split an overloaded section. Radical changes escape local optima.
+**Every 3rd iteration, try something bold.** Restructure the entire argument flow, merge redundant sections, or split an overloaded section. Radical changes escape local optima.
 
 **Preserve nuance.** Never delete hedged claims, honest limitations, caveats about generalizability, or negative results. These are features, not bugs. Move them to better locations — don't remove them.
 

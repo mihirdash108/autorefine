@@ -1,57 +1,82 @@
 eval_mode: binary
 max_iterations: 5
+judge_model: gpt-4o
 cross_doc_weight: 0.0
+placeholder_mocks: {}
 
-artifact: example-claude-md.md
-
-context: >
-  A CLAUDE.md project instruction file that defines rules and conventions
-  for an AI coding assistant. Rules should be clear, actionable, internally
-  consistent, and explain their rationale.
-
-dimensions:
-  rule_clarity:
-    description: >
-      Is each rule unambiguous? Could two different agents interpret the
-      same rule differently? Vague rules like "be careful with databases"
-      fail. Specific rules like "wait for each DB command to complete
-      before issuing the next" pass. Test each rule by asking: if two
-      agents read this rule independently, would they behave identically?
+artifacts:
+  example-claude-md.md:
     weight: 1.0
+    context: >
+      A CLAUDE.md project instruction file that defines rules and conventions
+      for an AI coding assistant. Rules should be clear, actionable, internally
+      consistent, and explain their rationale.
 
-  actionability:
-    description: >
-      Can each rule be followed mechanically? Rules requiring judgment
-      the agent lacks ("use your best judgment", "be reasonable") fail.
-      Rules with clear decision criteria ("if the file has more than 200
-      lines, split it") pass. Every rule should translate into a
-      concrete behavior the agent either does or does not do.
-    weight: 1.0
+    dimensions:
+      rule_clarity:
+        weight: 1.0
+        pass: >
+          Each rule is unambiguous. Two different agents reading the same rule
+          independently would behave identically. Rules are specific, like
+          "wait for each DB command to complete before issuing the next"
+          rather than vague like "be careful with databases."
+        fail: >
+          Rules are ambiguous. Two different agents could interpret the same
+          rule differently. Rules use vague language like "be careful with
+          databases" instead of specific instructions like "wait for each
+          DB command to complete before issuing the next."
 
-  internal_consistency:
-    description: >
-      Do any rules conflict with each other? Minor tensions are acceptable
-      if priority ordering resolves them (e.g., "prefer X, but if Y then
-      do Z instead"). Direct contradictions fail — for example, one rule
-      says "always commit after changes" while another says "never commit
-      unless asked." Check all pairs of rules that touch the same topic.
-    weight: 1.0
+      actionability:
+        weight: 1.0
+        pass: >
+          Each rule can be followed mechanically. Rules have clear decision
+          criteria ("if the file has more than 200 lines, split it"). Every
+          rule translates into a concrete behavior the agent either does or
+          does not do.
+        fail: >
+          Rules require judgment the agent lacks ("use your best judgment",
+          "be reasonable"). Rules lack clear decision criteria. Rules cannot
+          be translated into concrete behaviors the agent either does or
+          does not do.
 
-  edge_case_coverage:
-    description: >
-      Do rules cover the common failure modes they were written for?
-      A rule about "don't modify production config" should also address
-      what to do when production config legitimately needs to change.
-      A rule about "run tests before committing" should address what to
-      do when tests fail. Each rule should handle its own exceptions.
-    weight: 1.0
+      internal_consistency:
+        weight: 1.0
+        pass: >
+          No rules conflict with each other. Minor tensions are resolved
+          by explicit priority ordering (e.g., "prefer X, but if Y then
+          do Z instead"). All pairs of rules that touch the same topic
+          are compatible.
+        fail: >
+          Rules directly contradict each other — for example, one rule says
+          "always commit after changes" while another says "never commit
+          unless asked." Conflicting rules have no priority ordering to
+          resolve the tension.
 
-  explains_why:
-    description: >
-      Does each rule explain its rationale so the agent can handle
-      unstated edge cases? "Never run parallel DB commands" is weak
-      because the agent cannot generalize it. "Never run parallel DB
-      commands — overlapping commands cause deadlocks" is strong because
-      the agent can apply the same principle (avoid deadlocks) to novel
-      situations the rule does not explicitly cover.
-    weight: 1.0
+      edge_case_coverage:
+        weight: 1.0
+        pass: >
+          Rules cover the common failure modes they were written for. A rule
+          about "don't modify production config" also addresses what to do
+          when production config legitimately needs to change. A rule about
+          "run tests before committing" addresses what to do when tests fail.
+          Each rule handles its own exceptions.
+        fail: >
+          Rules only cover the happy path and do not address their own
+          exceptions. A rule about "don't modify production config" has no
+          guidance for when production config legitimately needs to change.
+          A rule about "run tests before committing" has no guidance for
+          when tests fail.
+
+      explains_why:
+        weight: 1.0
+        pass: >
+          Each rule explains its rationale so the agent can handle unstated
+          edge cases. For example, "never run parallel DB commands —
+          overlapping commands cause deadlocks" is strong because the agent
+          can apply the same principle (avoid deadlocks) to novel situations
+          the rule does not explicitly cover.
+        fail: >
+          Rules state what to do but not why. For example, "never run
+          parallel DB commands" without explaining that overlapping commands
+          cause deadlocks. The agent cannot generalize the rule to novel
+          situations because it does not understand the underlying principle.

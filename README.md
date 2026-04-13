@@ -128,7 +128,7 @@ autorefine auto-detects your backend from environment variables:
 
 Override with `AUTOREFINE_BACKEND=openai|azure|anthropic|ollama` and `AUTOREFINE_MODEL=model-name`.
 
-**Key design choice:** Use a different model family for the judge than for the refiner. If Claude Code is your refiner, use GPT-4o as the judge (and vice versa). This avoids [self-preference bias](#self-preference-bias), where models rate their own outputs higher.
+**Key design choice:** Use a different model family for the judge than for the refiner. If Claude Code is your refiner, use GPT-4o as the judge (and vice versa). This avoids [self-preference bias](#known-biases-and-mitigations), where models rate their own outputs higher.
 
 ## Evaluation modes
 
@@ -191,7 +191,7 @@ cp my-skill.md artifacts/
 
 ### Technical papers & evaluation docs
 
-Strengthen methodology rigor, reproducibility, and statistical validity. Catch information security leaks — implementation details that shouldn't be in a public document. (See [case study](#case-study) below.)
+Strengthen methodology rigor, reproducibility, and statistical validity. Catch information security leaks — implementation details that shouldn't be in a public document. (See [case study](#case-study-catching-proprietary-information-leaks) below.)
 
 ```bash
 cp templates/technical-paper/rubric.yaml .

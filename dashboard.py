@@ -17,7 +17,7 @@ Charts:
   8. Cross-document consistency
   9. Convergence monitor (consecutive discards)
 
-Auto-refreshes every 30 seconds.
+Auto-refreshes every 5 seconds.
 """
 
 import argparse
@@ -132,7 +132,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 </head>
 <body>
 <h1>autorefine</h1>
-<div class="subtitle">iteration dashboard &mdash; auto-refreshes every 30s</div>
+<div class="subtitle">iteration dashboard &mdash; auto-refreshes every 5s</div>
 
 <div id="app"></div>
 

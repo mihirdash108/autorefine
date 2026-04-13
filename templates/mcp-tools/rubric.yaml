@@ -1,57 +1,84 @@
 eval_mode: binary
 max_iterations: 4
+judge_model: gpt-4o
 cross_doc_weight: 0.0
+placeholder_mocks: {}
 
-artifact: example-mcp-tool.md
-
-context: >
-  An MCP tool description for an AI assistant's tool registry. The
-  description must help the agent choose the right tool, use it correctly,
-  and handle errors.
-
-dimensions:
-  disambiguation:
-    description: >
-      Does the description clearly distinguish this tool from similar tools
-      in the registry? A document search tool must explain how it differs
-      from a general web search, a database query, or a file read. The
-      agent sees many tools at once and must pick the right one based on
-      descriptions alone. If two tools could plausibly handle the same
-      request, the descriptions must make the boundary clear.
+artifacts:
+  example-mcp-tool.md:
     weight: 1.0
+    context: >
+      An MCP tool description for an AI assistant's tool registry. The
+      description must help the agent choose the right tool, use it correctly,
+      and handle errors.
 
-  parameter_documentation:
-    description: >
-      Are all parameters documented with types, constraints, defaults,
-      and at least one example value? Missing type information forces the
-      agent to guess (string vs number vs array). Missing constraints
-      lead to invalid calls (passing 1000 when max is 50). Missing
-      defaults cause unnecessary parameter specification. Missing examples
-      force the agent to invent formats.
-    weight: 1.0
+    dimensions:
+      disambiguation:
+        weight: 1.0
+        pass: >
+          The description clearly distinguishes this tool from similar tools
+          in the registry. A document search tool explains how it differs
+          from a general web search, a database query, or a file read. The
+          agent sees many tools at once and can pick the right one based on
+          descriptions alone. If two tools could plausibly handle the same
+          request, the descriptions make the boundary clear.
+        fail: >
+          The description does not distinguish this tool from similar tools
+          in the registry. The agent cannot tell when to use this tool vs
+          a similar one. Boundaries between tools with overlapping functionality
+          are unclear or unstated.
 
-  example_coverage:
-    description: >
-      Do examples cover the common use case AND at least one edge case
-      (empty input, error condition, boundary value)? A single happy-path
-      example is insufficient. The agent needs to see how the tool behaves
-      in non-obvious situations to use it correctly in real workflows.
-    weight: 1.0
+      parameter_documentation:
+        weight: 1.0
+        pass: >
+          All parameters are documented with types, constraints, defaults,
+          and at least one example value. Type information is explicit
+          (string vs number vs array). Constraints are stated (e.g., max
+          value). Defaults are documented. Examples show correct formats.
+        fail: >
+          Parameters are missing type information, forcing the agent to
+          guess (string vs number vs array). Constraints are missing,
+          leading to invalid calls (passing 1000 when max is 50). Defaults
+          are undocumented, causing unnecessary parameter specification.
+          Examples are missing, forcing the agent to invent formats.
 
-  error_behavior:
-    description: >
-      Does the description explain what happens on invalid input, missing
-      required parameters, or service failures? The agent must know
-      whether errors return null, throw exceptions, return error objects,
-      or silently fail. Without this, the agent cannot write robust
-      workflows that handle tool failures.
-    weight: 1.0
+      example_coverage:
+        weight: 1.0
+        pass: >
+          Examples cover the common use case AND at least one edge case
+          (empty input, error condition, boundary value). The agent can
+          see how the tool behaves in non-obvious situations and use it
+          correctly in real workflows.
+        fail: >
+          Only a single happy-path example is provided, or no examples at
+          all. The agent cannot see how the tool behaves with empty input,
+          error conditions, or boundary values. Edge case behavior must be
+          discovered through trial-and-error.
 
-  return_value_documentation:
-    description: >
-      Is the return format documented? Does it describe the structure
-      (object, array, string), the fields and their types, and the
-      possible shapes for success vs error? The agent must parse the
-      return value to use it in subsequent steps. Undocumented return
-      values force trial-and-error.
-    weight: 1.0
+      error_behavior:
+        weight: 1.0
+        pass: >
+          The description explains what happens on invalid input, missing
+          required parameters, or service failures. The agent knows whether
+          errors return null, throw exceptions, return error objects, or
+          silently fail. The agent can write robust workflows that handle
+          tool failures.
+        fail: >
+          The description does not explain what happens on invalid input,
+          missing required parameters, or service failures. The agent does
+          not know whether errors return null, throw exceptions, return
+          error objects, or silently fail. The agent cannot write robust
+          workflows that handle tool failures.
+
+      return_value_documentation:
+        weight: 1.0
+        pass: >
+          The return format is documented. It describes the structure
+          (object, array, string), the fields and their types, and the
+          possible shapes for success vs error. The agent can parse the
+          return value to use it in subsequent steps.
+        fail: >
+          The return format is undocumented. The structure, fields, types,
+          and success vs error shapes are not described. The agent must
+          use trial-and-error to understand the return value and parse it
+          for subsequent steps.

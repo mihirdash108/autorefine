@@ -66,7 +66,7 @@ LOOP FOREVER:
 
 **One change per iteration.** Add one missing perspective, attribute one section's claims, or synthesize one comparison. Small changes are easier to evaluate.
 
-**Every 10th iteration, try something bold.** Restructure the document around decision criteria instead of topics, merge redundant sections, or rewrite the synthesis from scratch. Radical changes escape local optima.
+**Every 3rd iteration, try something bold.** Restructure the document around decision criteria instead of topics, merge redundant sections, or rewrite the synthesis from scratch. Radical changes escape local optima.
 
 ## Rules
 

@@ -1,58 +1,87 @@
 eval_mode: binary
 max_iterations: 7
+judge_model: gpt-4o
 cross_doc_weight: 0.0
+placeholder_mocks: {}
 
-artifact: example-skill.md
-
-context: >
-  A Claude Code skill definition (SKILL.md) for an AI coding assistant.
-  The skill should trigger correctly, have clear instructions, handle errors,
-  decompose complex tasks, and scope capabilities minimally.
-
-dimensions:
-  trigger_accuracy:
-    description: >
-      Does the description field correctly identify when to invoke this skill?
-      Not too broad (fires on common words like "check" or "run"), not too
-      narrow (misses valid use cases the skill was designed for). The trigger
-      should activate on the specific intent, not on surface-level keyword
-      overlap with unrelated requests.
+artifacts:
+  example-skill.md:
     weight: 1.0
+    context: >
+      A Claude Code skill definition (SKILL.md) for an AI coding assistant.
+      The skill should trigger correctly, have clear instructions, handle errors,
+      decompose complex tasks, and scope capabilities minimally.
 
-  instruction_completeness:
-    description: >
-      Does every step have enough detail for the agent to execute without
-      guessing? No ambiguous phrases like "handle appropriately", "use your
-      judgment", or "do the right thing." Each instruction should specify
-      the exact tool call, file path pattern, or decision criteria the agent
-      needs. If a step requires information from a previous step, the
-      dependency must be explicit.
-    weight: 1.0
+    dimensions:
+      trigger_accuracy:
+        weight: 1.0
+        pass: >
+          The description field correctly identifies when to invoke this skill.
+          It is not too broad (does not fire on common words like "check" or
+          "run") and not too narrow (does not miss valid use cases the skill
+          was designed for). The trigger activates on the specific intent,
+          not on surface-level keyword overlap with unrelated requests.
+        fail: >
+          The description field is too broad (fires on common words or
+          unrelated requests) or too narrow (misses valid use cases the skill
+          was designed for). The trigger activates on surface-level keyword
+          overlap rather than specific intent, or fails to activate on
+          requests that clearly match the skill's purpose.
 
-  error_handling:
-    description: >
-      Does the skill handle failures, edge cases, and unexpected input?
-      Are there explicit instructions for what to do when tools fail,
-      return unexpected results, or when preconditions are not met?
-      The skill should never leave the agent in a state where it has no
-      instruction for what to do next.
-    weight: 1.0
+      instruction_completeness:
+        weight: 1.0
+        pass: >
+          Every step has enough detail for the agent to execute without
+          guessing. No ambiguous phrases like "handle appropriately", "use your
+          judgment", or "do the right thing." Each instruction specifies
+          the exact tool call, file path pattern, or decision criteria the agent
+          needs. If a step requires information from a previous step, the
+          dependency is explicit.
+        fail: >
+          Steps lack detail and force the agent to guess. Uses ambiguous
+          phrases like "handle appropriately", "use your judgment", or "do
+          the right thing." Instructions omit exact tool calls, file path
+          patterns, or decision criteria. Dependencies between steps are
+          implicit or unstated.
 
-  task_decomposition:
-    description: >
-      For multi-step workflows, are tasks broken into clear sequential or
-      parallel steps? Are dependencies between steps explicit? If the skill
-      launches subagents, are their prompts self-contained with all needed
-      context (no references to "the current conversation" or "what we
-      discussed earlier")? Each step should have a clear completion
-      criterion.
-    weight: 1.0
+      error_handling:
+        weight: 1.0
+        pass: >
+          The skill handles failures, edge cases, and unexpected input.
+          There are explicit instructions for what to do when tools fail,
+          return unexpected results, or when preconditions are not met.
+          The skill never leaves the agent in a state where it has no
+          instruction for what to do next.
+        fail: >
+          The skill does not handle failures, edge cases, or unexpected
+          input. There are no instructions for what to do when tools fail,
+          return unexpected results, or when preconditions are not met.
+          The agent can reach states where it has no instruction for what
+          to do next.
 
-  capability_scoping:
-    description: >
-      Are allowed-tools minimally scoped? Does the skill request only the
-      permissions it actually needs? A skill that only reads files should
-      not have Write or Bash in its allowed-tools. A skill that only
-      searches should not have Edit. Over-permissioning creates risk of
-      unintended side effects.
-    weight: 1.0
+      task_decomposition:
+        weight: 1.0
+        pass: >
+          For multi-step workflows, tasks are broken into clear sequential or
+          parallel steps. Dependencies between steps are explicit. If the skill
+          launches subagents, their prompts are self-contained with all needed
+          context (no references to "the current conversation" or "what we
+          discussed earlier"). Each step has a clear completion criterion.
+        fail: >
+          Multi-step workflows are not broken into clear steps. Dependencies
+          between steps are implicit or missing. Subagent prompts reference
+          "the current conversation" or "what we discussed earlier" instead
+          of being self-contained. Steps lack clear completion criteria.
+
+      capability_scoping:
+        weight: 1.0
+        pass: >
+          Allowed-tools are minimally scoped. The skill requests only the
+          permissions it actually needs. A skill that only reads files does
+          not have Write or Bash in its allowed-tools. A skill that only
+          searches does not have Edit. Permissions match actual usage.
+        fail: >
+          Allowed-tools are over-permissioned. The skill requests more
+          permissions than it actually needs. A read-only skill has Write
+          or Bash in its allowed-tools. A search-only skill has Edit.
+          Over-permissioning creates risk of unintended side effects.

@@ -16,6 +16,6 @@ REPORT.md
 .eval_cost
 __pycache__/
 *.pyc
+.pytest_cache/
 .venv/
 .python-version
-uv.lock

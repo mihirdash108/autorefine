@@ -733,17 +733,34 @@ def main():
         baseline_snapshot = snapshot
 
     # --- Validate artifacts ---
+    def auto_revert_and_exit():
+        """Auto-revert on INVALID — same as DISCARD."""
+        revert_target = "HEAD~1"
+        if PRE_EVAL_COMMIT_PATH.exists():
+            saved_sha = PRE_EVAL_COMMIT_PATH.read_text().strip()
+            if saved_sha:
+                revert_target = saved_sha
+        try:
+            subprocess.run(
+                ["git", "reset", "--hard", revert_target],
+                capture_output=True, text=True, cwd=ROOT_DIR,
+            )
+            print(f"Auto-reverted: git reset --hard {revert_target}")
+        except FileNotFoundError:
+            print("WARNING: Could not auto-revert. Revert manually: git reset --hard HEAD~1")
+        sys.exit(1)
+
     for af in artifact_files:
         content = af.read_text()
         if len(content.encode()) < MIN_ARTIFACT_BYTES:
             print(f"INVALID: {af.name} is only {len(content.encode())} bytes")
             print("verdict:             INVALID")
-            sys.exit(1)
+            auto_revert_and_exit()
         missing = validate_placeholders(af.name, content, baseline_snapshot)
         if missing:
             print(f"INVALID: placeholder(s) {', '.join('{' + p + '}' for p in missing)} removed from {af.name}")
             print("verdict:             INVALID")
-            sys.exit(1)
+            auto_revert_and_exit()
 
     # --- Evaluate each artifact ---
     total_inp, total_out = 0, 0
@@ -909,8 +926,8 @@ def main():
     if verdict in ("KEEP", "BASELINE"):
         save_checkpoint_snapshot(iteration, verdict)
 
-    # --- Auto-revert on DISCARD or CONVERGED ---
-    if verdict in ("DISCARD", "CONVERGED"):
+    # --- Auto-revert on DISCARD, CONVERGED, or INVALID ---
+    if verdict in ("DISCARD", "CONVERGED", "INVALID"):
         # Revert to specific SHA (written by supervisor) or fall back to HEAD~1
         revert_target = "HEAD~1"
         if PRE_EVAL_COMMIT_PATH.exists():
