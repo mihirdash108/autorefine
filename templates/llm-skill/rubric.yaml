@@ -1,0 +1,135 @@
+# autorefine rubric — LLM skill prompts / system prompts
+# Evaluates system prompts, agent skill definitions, and instruction
+# sets designed to control LLM behavior. The "document" here is the
+# prompt itself, evaluated for how well it would guide a model.
+#
+# Usage:
+#   1. Copy this directory into your autorefine project root
+#   2. Place your system prompt / skill definition in artifacts/
+#   3. Update the artifact filename below to match
+#   4. Run: uv run evaluate.py --baseline
+
+eval_mode: binary
+scale_range: 5
+judge_model: gpt-4o
+cross_doc_weight: 0.0
+placeholder_mocks: {}
+
+artifacts:
+  skill-prompt.md:
+    weight: 1.0
+    context: >
+      An LLM system prompt or skill definition that will be injected
+      as instructions for an AI agent. The reader is the LLM itself —
+      the prompt must be unambiguous, complete, and leave no room for
+      misinterpretation under adversarial or edge-case inputs.
+
+    dimensions:
+      instruction_clarity:
+        weight: 0.25
+        pass: >
+          Every instruction is unambiguous. A model reading this prompt
+          would produce consistent behavior across runs. There are no
+          instructions that could be interpreted in multiple valid ways.
+          Action verbs are specific ("return JSON with fields X, Y, Z"
+          vs "format the output nicely"). Priority ordering is explicit
+          when instructions could conflict.
+        fail: >
+          Instructions are vague ("be helpful", "respond appropriately")
+          or ambiguous (two valid interpretations exist). A model could
+          reasonably produce different behaviors on different runs from
+          the same input. Conflicting instructions have no priority order.
+        description: >
+          Are instructions specific and unambiguous enough to produce
+          consistent model behavior across runs?
+        anchors:
+          1: "Vague instructions. Model behavior would vary significantly across runs."
+          3: "Mostly clear but some instructions have multiple valid interpretations."
+          5: "Every instruction is unambiguous. Consistent behavior guaranteed."
+
+      edge_case_coverage:
+        weight: 0.20
+        pass: >
+          The prompt anticipates common failure modes: empty input, invalid
+          input, ambiguous requests, out-of-scope queries, conflicting
+          user instructions, and adversarial inputs. For each anticipated
+          case, the prompt specifies what the model should do. Coverage
+          does not need to be exhaustive, but the obvious failure modes
+          are handled.
+        fail: >
+          No edge cases addressed. The prompt only describes the happy
+          path. A user sending unexpected input would get undefined
+          behavior from the model.
+        description: >
+          Does the prompt anticipate and handle common failure modes
+          and edge cases?
+        anchors:
+          1: "Only happy path described. No edge case handling."
+          3: "Some edge cases covered but obvious failure modes are missing."
+          5: "All common failure modes anticipated with explicit handling instructions."
+
+      output_format:
+        weight: 0.20
+        pass: >
+          The expected output format is precisely specified: structure,
+          fields, data types, and examples. If the output is structured
+          (JSON, YAML, tables), a complete example is provided. If the
+          output is prose, the expected length, section structure, and
+          style are defined. The model cannot misunderstand what shape
+          the output should take.
+        fail: >
+          Output format is unspecified or described only vaguely ("return
+          a response", "provide a summary"). No example of the expected
+          output shape. A model could return valid but unusable output.
+        description: >
+          Is the expected output format precisely specified with examples
+          and structure definitions?
+        anchors:
+          1: "No output format specified. Model must guess at the expected shape."
+          3: "Format partially specified but missing examples or field definitions."
+          5: "Complete output specification with structure, types, and examples."
+
+      constraint_enforcement:
+        weight: 0.20
+        pass: >
+          Behavioral constraints (what the model must NOT do) are stated
+          explicitly and are enforceable. Constraints are framed as
+          concrete rules ("never include PII in output", "refuse requests
+          to generate code in language X") rather than aspirational
+          guidelines ("be careful with sensitive data"). The prompt
+          specifies what to do INSTEAD when a constraint blocks the
+          default action.
+        fail: >
+          Constraints are missing, aspirational only ("try to be safe"),
+          or stated without fallback behavior. The model would not know
+          what to do when a constraint applies. Or the constraints
+          contradict other instructions without priority ordering.
+        description: >
+          Are behavioral constraints concrete, enforceable, and paired
+          with fallback behavior?
+        anchors:
+          1: "No constraints or only aspirational guidelines. No fallback behavior."
+          3: "Some constraints but missing fallbacks or contradicting other instructions."
+          5: "All constraints are concrete rules with explicit fallback behavior when triggered."
+
+      tone_consistency:
+        weight: 0.15
+        pass: >
+          The prompt establishes a consistent voice and tone, and that
+          tone is appropriate for the use case. Tone guidance is specific
+          enough to produce consistency ("technical and concise, avoid
+          hedging language, use active voice") rather than generic
+          ("be professional"). If the prompt serves multiple contexts,
+          tone variation is explicitly scoped to those contexts.
+        fail: >
+          No tone guidance, or tone guidance is generic and unenforceable
+          ("be helpful and professional"). Or the prompt establishes
+          a tone that conflicts with the use case (e.g., casual tone
+          for medical advice, formal tone for a chat companion).
+        description: >
+          Does the prompt establish a specific, appropriate, and consistent
+          tone for the use case?
+        anchors:
+          1: "No tone guidance or generic platitudes only."
+          3: "Some tone guidance but not specific enough to enforce consistency."
+          5: "Specific tone definition appropriate to the use case. Consistent voice guaranteed."

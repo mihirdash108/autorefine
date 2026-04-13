@@ -1,0 +1,130 @@
+# autorefine rubric — technical evaluation papers / whitepapers
+# Evaluates technical documents intended for due-diligence reviewers:
+# engineers, architects, and technical evaluators assessing a system,
+# methodology, or technology.
+#
+# Usage:
+#   1. Copy this directory into your autorefine project root
+#   2. Place your technical paper in artifacts/
+#   3. Update the artifact filename below to match
+#   4. Run: uv run evaluate.py --baseline
+
+eval_mode: binary
+scale_range: 5
+judge_model: gpt-4o
+cross_doc_weight: 0.0
+placeholder_mocks: {}
+
+artifacts:
+  technical-paper.md:
+    weight: 1.0
+    context: >
+      A technical evaluation paper or whitepaper aimed at engineers
+      and architects performing due diligence. The reader is an expert
+      who will scrutinize methodology, check for reproducibility, and
+      look for gaps in reasoning.
+
+    dimensions:
+      methodology_rigor:
+        weight: 0.25
+        pass: >
+          The paper clearly states the methodology: what was measured,
+          how it was measured, what tools or environment were used, and
+          what variables were controlled. Design decisions are justified.
+          A reader can assess whether the methodology is sound without
+          guessing at details.
+        fail: >
+          Methodology is vague or missing. Results are presented without
+          explaining how they were obtained. Design choices are stated
+          without justification ("we chose X" with no explanation of why
+          not Y).
+        description: >
+          Is the methodology clearly described and justified? Can the
+          reader assess its soundness?
+        anchors:
+          1: "No methodology described. Results appear without context."
+          3: "Methodology outlined but missing key details or justifications."
+          5: "Complete methodology. Tools, environment, controlled variables, and design rationale all clear."
+
+      reproducibility:
+        weight: 0.20
+        pass: >
+          Another engineer could reproduce the work from what is written.
+          Configuration details, environment specifications, dataset
+          descriptions, and step sequences are specific enough to follow.
+          Where exact reproduction is impossible (e.g., proprietary data),
+          the paper acknowledges this and provides approximation guidance.
+        fail: >
+          Key details needed for reproduction are missing: unspecified
+          configurations, unnamed tools, vague dataset descriptions, or
+          missing step sequences. The reader cannot attempt to reproduce
+          without contacting the author.
+        description: >
+          Could another engineer reproduce the results from the information
+          provided in the paper?
+        anchors:
+          1: "Cannot reproduce. Key configurations and tools are unnamed or unspecified."
+          3: "Partially reproducible. Some details missing but general approach is followable."
+          5: "Fully reproducible. All configs, tools, data, and steps specified."
+
+      statistical_validity:
+        weight: 0.20
+        pass: >
+          Claims are appropriately qualified. Numbers include context
+          (sample size, confidence intervals, variance, or baseline
+          comparisons). The paper does not present single-run results as
+          definitive, does not cherry-pick favorable metrics, and
+          acknowledges uncertainty where it exists.
+        fail: >
+          Numbers are presented without context. Single data points are
+          treated as conclusions. No error bounds, no sample sizes, no
+          baselines. Or the paper makes strong claims that the data
+          does not support.
+        description: >
+          Are quantitative claims properly contextualized with sample sizes,
+          baselines, error bounds, and appropriate qualification?
+        anchors:
+          1: "Raw numbers with no context. Strong claims unsupported by data."
+          3: "Some context but missing error bounds or baselines for key claims."
+          5: "All claims properly qualified. Sample sizes, baselines, and uncertainty acknowledged."
+
+      transparency:
+        weight: 0.15
+        pass: >
+          Limitations, failure cases, and negative results are disclosed.
+          The paper explicitly states what it does NOT cover, where the
+          approach breaks down, and what assumptions it depends on. A
+          reader finishes with a clear mental model of both strengths
+          and weaknesses.
+        fail: >
+          Only positive results are shown. Limitations are absent or
+          buried in a perfunctory "future work" section. The paper
+          reads like advocacy rather than analysis.
+        description: >
+          Does the paper honestly disclose limitations, failure cases,
+          and assumptions?
+        anchors:
+          1: "No limitations disclosed. Reads as pure advocacy."
+          3: "Some limitations mentioned but feel perfunctory or incomplete."
+          5: "Transparent about limitations, failure cases, and assumptions. Reader sees the full picture."
+
+      organization:
+        weight: 0.20
+        pass: >
+          The paper follows a logical structure where each section builds
+          on the previous one. The reader always knows where they are,
+          what the current section establishes, and how it connects to
+          the argument. Figures and tables are referenced in context
+          and add information that text alone would not convey.
+        fail: >
+          Structure is disorganized or arbitrary. The reader has to
+          backtrack to understand dependencies between sections. Figures
+          are decorative rather than informative, or are presented
+          without adequate explanation.
+        description: >
+          Is the paper logically structured so each section builds on
+          the previous one? Are figures and tables informative?
+        anchors:
+          1: "Disorganized. Reader must backtrack frequently. Figures are unexplained."
+          3: "Generally logical but some sections feel out of place or disconnected."
+          5: "Clean logical flow. Each section builds on the last. All figures add clear value."

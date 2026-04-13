@@ -1,0 +1,12 @@
+.env
+eval.log
+eval_state.json
+results.tsv
+checkpoints/
+.baseline_placeholders.json
+.eval_cost
+__pycache__/
+*.pyc
+.venv/
+.python-version
+uv.lock

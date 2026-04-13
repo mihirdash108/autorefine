@@ -1,0 +1,120 @@
+# autorefine rubric — product documentation / landing pages
+# Evaluates product pages, feature overviews, and marketing docs
+# aimed at enterprise buyers who are comparison-shopping.
+#
+# Usage:
+#   1. Copy this directory into your autorefine project root
+#   2. Place your product doc in artifacts/
+#   3. Update the artifact filename below to match
+#   4. Run: uv run evaluate.py --baseline
+
+eval_mode: binary
+scale_range: 5
+judge_model: gpt-4o
+cross_doc_weight: 0.0
+placeholder_mocks: {}
+
+artifacts:
+  product-page.md:
+    weight: 1.0
+    context: >
+      A product documentation page or landing page aimed at enterprise
+      buyers evaluating solutions. The reader is a technical decision-maker
+      who has seen dozens of similar pages and will skim before reading.
+
+    dimensions:
+      value_proposition:
+        weight: 0.25
+        pass: >
+          The core value proposition is stated in the first two paragraphs.
+          It answers "what problem does this solve?" and "why should I care?"
+          in concrete, measurable terms — not abstract promises like
+          "transform your workflow" or "unlock the power of AI."
+        fail: >
+          The value proposition is missing, buried below the fold, or
+          stated in vague buzzwords that could describe any product in
+          the category.
+        description: >
+          Does the page clearly communicate what problem the product solves
+          and why the reader should care, within the first two paragraphs?
+        anchors:
+          1: "No clear value proposition. Generic buzzwords only."
+          3: "Value proposition exists but is vague or buried past the opening."
+          5: "Specific, measurable value proposition in the first two paragraphs."
+
+      specificity:
+        weight: 0.20
+        pass: >
+          Claims are backed by concrete details: numbers, benchmarks,
+          architecture specifics, named integrations, or customer-verifiable
+          facts. The reader can distinguish this product from competitors
+          based on the details alone.
+        fail: >
+          Claims are generic ("fast", "scalable", "easy to use") without
+          evidence. Swap in a competitor's name and the page still reads
+          the same.
+        description: >
+          Are claims backed by concrete, verifiable details rather than
+          generic adjectives?
+        anchors:
+          1: "All claims are generic. No concrete details, numbers, or evidence."
+          3: "Some specific details but key claims remain unsupported."
+          5: "Every claim is backed by concrete evidence a buyer can verify."
+
+      competitive_differentiation:
+        weight: 0.20
+        pass: >
+          The page makes clear what this product does that alternatives
+          do not, or does differently. Differentiation is structural
+          (architecture, approach, capability) rather than just claimed
+          superiority. A reader finishes knowing exactly where this product
+          wins and where it makes trade-offs.
+        fail: >
+          No differentiation from alternatives. The page could describe
+          any product in the category. Or differentiation is claimed
+          without explanation ("unlike other tools, we just work").
+        description: >
+          Does the page articulate what makes this product different from
+          alternatives in a way that is structural, not just asserted?
+        anchors:
+          1: "No differentiation. Interchangeable with any competitor's page."
+          3: "Some differentiation but mostly asserted, not explained."
+          5: "Clear structural differentiation. Reader knows exactly where this product wins."
+
+      scannability:
+        weight: 0.15
+        pass: >
+          A reader skimming for 15 seconds gets the key message. Headers
+          are informative (not generic like "Features" or "Benefits").
+          Visual hierarchy guides the eye. Key information is not buried
+          in dense paragraphs.
+        fail: >
+          Wall of text. Headers are generic or missing. Key information
+          requires careful reading to extract. A skimmer leaves with
+          nothing.
+        description: >
+          Can a reader skimming for 15 seconds extract the key message
+          and decide whether to read further?
+        anchors:
+          1: "Wall of text. No visual hierarchy. Skimming yields nothing."
+          3: "Some structure but key info is buried in paragraphs."
+          5: "Informative headers, clear hierarchy. 15-second skim captures the core message."
+
+      voice_and_authenticity:
+        weight: 0.20
+        pass: >
+          Written in a direct, confident voice that sounds like the team
+          who built it. Honest about trade-offs and limitations where
+          relevant. Avoids corporate boilerplate, marketing cliches, and
+          empty superlatives ("best-in-class", "world-class", "cutting-edge").
+        fail: >
+          Reads like a press release or generic marketing copy. Uses
+          superlatives without evidence. Hides limitations. Could have
+          been written by any company's marketing department.
+        description: >
+          Does the writing sound authentic and direct, or like generic
+          corporate marketing?
+        anchors:
+          1: "Generic corporate voice. Full of superlatives and boilerplate."
+          3: "Mostly authentic but slips into marketing cliches in places."
+          5: "Direct, honest, opinionated. Sounds like the team who built it."

@@ -1,0 +1,131 @@
+# autorefine rubric — research notes / literature reviews / competitive analysis
+# Evaluates research documents that synthesize information from multiple
+# sources into actionable knowledge. Covers literature reviews, competitive
+# analyses, market research, and technology evaluations.
+#
+# Usage:
+#   1. Copy this directory into your autorefine project root
+#   2. Place your research document in artifacts/
+#   3. Update the artifact filename below to match
+#   4. Run: uv run evaluate.py --baseline
+
+eval_mode: binary
+scale_range: 5
+judge_model: gpt-4o
+cross_doc_weight: 0.0
+placeholder_mocks: {}
+
+artifacts:
+  research-notes.md:
+    weight: 1.0
+    context: >
+      A research document — literature review, competitive analysis, market
+      research, or technology evaluation — written for a decision-maker who
+      needs to act on the findings. The reader is time-constrained and needs
+      to trust the research enough to base decisions on it.
+
+    dimensions:
+      coverage:
+        weight: 0.20
+        pass: >
+          The document covers the major players, approaches, or perspectives
+          relevant to the topic. No obvious omissions that a subject-matter
+          expert would immediately flag. Where scope is intentionally limited,
+          the boundaries are stated and justified. The reader does not need
+          to do additional research to fill basic gaps.
+        fail: >
+          Major players, approaches, or perspectives are missing without
+          acknowledgment. A subject-matter expert would immediately notice
+          the gaps. The reader would need to supplement this research
+          before making a decision.
+        description: >
+          Does the research cover all major relevant players, approaches,
+          or perspectives without obvious omissions?
+        anchors:
+          1: "Major gaps. Key players or approaches missing entirely."
+          3: "Covers the obvious but misses important secondary perspectives."
+          5: "Comprehensive. All major perspectives covered. Scope boundaries stated."
+
+      accuracy:
+        weight: 0.25
+        pass: >
+          Claims are precise and verifiable. Product capabilities, dates,
+          pricing, and technical details match what the sources would show.
+          The document does not conflate similar but distinct concepts,
+          misattribute features, or present outdated information as current.
+          Where information could not be verified, the document says so.
+        fail: >
+          Contains factual errors, outdated information presented as current,
+          conflated concepts, or misattributed capabilities. Or makes
+          definitive claims about things that cannot be verified from the
+          stated sources.
+        description: >
+          Are claims accurate, precise, and verifiable? Are outdated or
+          unverifiable claims flagged as such?
+        anchors:
+          1: "Factual errors or outdated info presented as current. Concepts conflated."
+          3: "Mostly accurate but some claims are imprecise or unverified."
+          5: "All claims are precise and verifiable. Uncertainty is explicitly flagged."
+
+      actionability:
+        weight: 0.25
+        pass: >
+          The document leads to clear next steps or decision criteria.
+          After reading, the decision-maker knows what to do: which options
+          to pursue, what trade-offs to accept, or what to investigate
+          further and why. Recommendations are tied to specific findings,
+          not just appended as generic advice.
+        fail: >
+          The document presents information without synthesis or
+          recommendation. The reader finishes informed but not enabled.
+          Or recommendations are generic ("consider your needs") and
+          not tied to specific findings.
+        description: >
+          Does the research lead to clear, specific next steps or decision
+          criteria tied to the findings?
+        anchors:
+          1: "Information dump. No synthesis, recommendations, or decision criteria."
+          3: "Some recommendations but generic or disconnected from findings."
+          5: "Clear next steps and decision criteria directly tied to specific findings."
+
+      source_attribution:
+        weight: 0.15
+        pass: >
+          Every non-obvious claim is attributable to a source. The reader
+          can distinguish between facts sourced from external references,
+          the author's analysis, and the author's opinion. Sources are
+          specific enough to check (documentation pages, version numbers,
+          dated announcements) rather than vague ("according to their website").
+        fail: >
+          Claims float without attribution. The reader cannot tell what
+          is sourced fact vs author opinion. Or attribution is too vague
+          to verify ("sources say", "it is known that").
+        description: >
+          Can the reader distinguish sourced facts from author analysis,
+          and trace claims back to specific, checkable sources?
+        anchors:
+          1: "No attribution. Cannot distinguish fact from opinion."
+          3: "Some attribution but vague or inconsistent. Key claims unattributed."
+          5: "Every claim attributable. Clear separation of fact, analysis, and opinion."
+
+      synthesis:
+        weight: 0.15
+        pass: >
+          The document goes beyond listing facts to identify patterns,
+          contradictions, and non-obvious connections across sources.
+          Comparison is structural (these approaches differ because of X
+          architectural choice which leads to Y trade-off) rather than
+          surface-level (A has feature X, B does not). The reader gains
+          insight they would not get from reading the sources individually.
+        fail: >
+          The document is a list of facts organized by source or topic
+          with no cross-cutting analysis. Comparisons are feature checklists
+          rather than structural analysis. The reader could have gotten
+          the same information by reading each source separately.
+        description: >
+          Does the document synthesize across sources to surface patterns,
+          contradictions, and structural insights?
+        anchors:
+          1: "Fact list organized by source. No cross-cutting analysis."
+          3: "Some comparison but mostly feature checklists. Surface-level only."
+          5: "Genuine synthesis. Patterns, contradictions, and structural trade-offs identified."

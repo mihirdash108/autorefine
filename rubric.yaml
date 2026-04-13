@@ -1,0 +1,95 @@
+# autorefine rubric — example configuration
+# This file defines how your artifacts are evaluated.
+# The refiner agent CANNOT modify this file.
+#
+# Two evaluation modes:
+#   binary (default, recommended): pass/fail per dimension
+#   scale: 1-5 score per dimension
+#
+# See README.md for rubric design best practices.
+
+eval_mode: binary      # "binary" (recommended) or "scale"
+scale_range: 5         # 1-N scale (only used in scale mode; research shows 5 is optimal)
+judge_model: gpt-4o    # Override with AUTOREFINE_MODEL env var
+cross_doc_weight: 0.15 # Weight of cross-document consistency (0 to disable)
+
+# Mock values for placeholders — the judge sees these instead of {PLACEHOLDER}
+# Prevents unfair penalization for template variables not yet filled
+placeholder_mocks: {}
+  # Example:
+  # METRIC_A: "0.94"
+  # METRIC_B: "1270"
+
+# ---------------------------------------------------------------------------
+# Artifact evaluation dimensions
+# ---------------------------------------------------------------------------
+
+artifacts:
+  example.md:
+    weight: 1.0
+    context: >
+      A document being iteratively refined. Replace this context with
+      a description of your document's purpose and target audience.
+
+    dimensions:
+      clarity:
+        weight: 0.25
+        pass: >
+          The document's main point is immediately clear. A reader
+          understands the purpose and key takeaway within 30 seconds.
+        fail: >
+          The main point is buried, unclear, or requires reading the
+          full document to understand.
+        description: >
+          How quickly and clearly does the document communicate its
+          main point?
+        anchors:
+          1: "Main point is completely unclear. Reader cannot determine document's purpose."
+          3: "Main point exists but is buried or requires significant reading to find."
+          5: "Main point is immediately clear. Reader knows purpose and takeaway in 30 seconds."
+
+      completeness:
+        weight: 0.25
+        pass: >
+          All necessary information is present. No obvious gaps where
+          a reader would expect content. Every claim is supported.
+        fail: >
+          Missing key information, unsupported claims, or obvious gaps
+          in the argument or explanation.
+        description: >
+          Does the document contain all the information a reader needs?
+        anchors:
+          1: "Major gaps. Key information is missing entirely."
+          3: "Most information present but some claims are unsupported."
+          5: "Complete. Every claim supported, no gaps where content is expected."
+
+      structure:
+        weight: 0.25
+        pass: >
+          Logical organization. Sections flow naturally. Information
+          is easy to find. Headers and formatting aid comprehension.
+        fail: >
+          Disorganized. Information is scattered or in unexpected places.
+          Reader has to jump around to follow the argument.
+        description: >
+          Is the document well-organized? Do sections flow logically?
+        anchors:
+          1: "Disorganized. Information scattered, sections out of order."
+          3: "Generally organized but some information is misplaced."
+          5: "Clean logical flow. Information is exactly where you'd expect it."
+
+      conciseness:
+        weight: 0.25
+        pass: >
+          Information-dense. No filler, redundancy, or boilerplate.
+          Every sentence adds value.
+        fail: >
+          Contains filler, unnecessary repetition, or boilerplate
+          sections that add no information.
+        description: >
+          Is the document information-dense? Could content be cut
+          without losing substance?
+        anchors:
+          1: "Padded with filler. Same points repeated in different words."
+          3: "Mostly substantive but some paragraphs could be cut."
+          5: "Every sentence carries information. Nothing to cut."
