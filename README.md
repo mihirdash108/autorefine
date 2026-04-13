@@ -1,10 +1,12 @@
 # autorefine
 
-**Autonomous text refinement using an LLM-as-judge evaluation loop.**
+**Autonomous refinement of prompts, skills, and documents using an LLM-as-judge evaluation loop.**
 
-You give it a document. You define what "good" means in a YAML rubric. An AI agent refines the document iteratively — each change is evaluated, kept if it improves the score, discarded if it doesn't. You wake up to a better document and a full experiment log.
+You give it a text artifact — a system prompt, an agent skill, a product page, a technical doc. You define what "good" means in a YAML rubric. An AI agent refines it iteratively: each change is evaluated by a separate LLM judge, kept if it improves the score, discarded if it doesn't. You walk away and come back to a better artifact and a full experiment log.
 
-Inspired by [karpathy/autoresearch](https://github.com/karpathy/autoresearch), which pioneered autonomous experiment loops for ML research. autorefine adapts the same pattern for text artifacts — documents, prompts, research notes, anything — using LLM-as-judge evaluation instead of training loss.
+Built for AI engineers who iterate on prompts, skills, and agent instructions — the highest-leverage text artifacts where small wording changes cause large behavioral shifts. Also works for product docs, technical papers, and any text where quality is definable via a rubric.
+
+Inspired by [karpathy/autoresearch](https://github.com/karpathy/autoresearch), which pioneered autonomous experiment loops for ML research. autorefine adapts the same pattern for text artifacts using LLM-as-judge evaluation instead of training loss.
 
 ## How it works
 
@@ -166,43 +168,50 @@ Use scale mode when you need fine-grained progress tracking or when binary is to
 
 ## Use cases
 
-### Product documentation
+### LLM skills, system prompts & agent config (primary use case)
 
-Refine product pages, landing pages, and sales materials. The agent improves value proposition clarity, competitive differentiation, and audience fit while maintaining your authentic voice.
+The highest-leverage text artifacts: small wording changes cause large behavioral shifts. autorefine iteratively tightens instruction clarity, catches edge case gaps, and strengthens constraint enforcement — with a keep/discard gate that prevents iteration 15 from breaking what iteration 8 fixed.
 
 ```bash
-cp templates/product-doc/rubric.yaml .
-cp templates/product-doc/program.md .
-cp your-product-page.md artifacts/
+cp templates/llm-skill/rubric.yaml .
+cp templates/llm-skill/program.md .
+cp my-skill.md artifacts/
 ```
 
-**Example dimensions:** value proposition, specificity, competitive differentiation, scannability, voice & authenticity.
+**Example dimensions:** instruction clarity, edge case coverage, output format, constraint enforcement, tone consistency.
+
+**Works for any agent instruction file:**
+
+- **Claude Code skills** (`SKILL.md`) — refine the trigger conditions, step-by-step instructions, and subagent prompts. Evaluate whether the agent follows the skill correctly across different invocations.
+- **CLAUDE.md project rules** — iterate on your project-level instructions until the agent consistently follows them. Dimensions like "rule clarity," "no ambiguity," and "covers edge cases" catch vague instructions that agents interpret differently each time.
+- **User preference files** — refine your personal CLAUDE.md rules based on accumulated feedback. Add a dimension for "does this rule prevent the specific mistake it was written for?" to ensure rules stay actionable.
+- **MCP tool descriptions** — tighten tool descriptions so the agent picks the right tool for each task. Evaluate with "does the description unambiguously differentiate this tool from similar ones?"
 
 ### Technical papers & evaluation docs
 
-Refine whitepapers, evaluation methodology docs, and technical reports. The agent strengthens methodology rigor, reproducibility, and statistical validity.
+Strengthen methodology rigor, reproducibility, and statistical validity. Catch information security leaks — implementation details that shouldn't be in a public document. (See [case study](#case-study) below.)
 
 ```bash
 cp templates/technical-paper/rubric.yaml .
 cp templates/technical-paper/program.md .
 ```
 
-**Example dimensions:** methodology rigor, reproducibility, statistical validity, transparency, organization.
+**Example dimensions:** methodology rigor, reproducibility, statistical validity, transparency, information security.
 
-### LLM skills & system prompts
+### Product documentation
 
-Iteratively improve AI agent skills, system prompts, and instruction sets. The agent tightens instruction clarity, adds edge case coverage, and strengthens constraint enforcement.
+Refine product pages and sales materials. Improve value proposition clarity, competitive differentiation, and audience fit while maintaining authentic voice.
 
 ```bash
-cp templates/llm-skill/rubric.yaml .
-cp templates/llm-skill/program.md .
+cp templates/product-doc/rubric.yaml .
+cp templates/product-doc/program.md .
 ```
 
-**Example dimensions:** instruction clarity, edge case coverage, output format, constraint enforcement, tone consistency.
+**Example dimensions:** buyer clarity, competitive differentiation, evidence quality, document effectiveness, information security.
 
 ### Research notes & competitive analysis
 
-Refine research documents, literature reviews, and market analysis. The agent improves coverage, source attribution, and synthesis quality.
+Improve coverage, source attribution, and synthesis quality.
 
 ```bash
 cp templates/research-notes/rubric.yaml .
@@ -217,8 +226,8 @@ autorefine works with any text artifact where quality is definable via a rubric:
 
 - **API documentation** — completeness, example quality, error documentation
 - **Blog posts & essays** — argument strength, engagement, evidence quality
-- **Configuration files** — correctness, documentation, best practices
-- **Pitch decks** (as markdown) — narrative arc, specificity, credibility
+- **MCP tool descriptions** — clarity, parameter documentation, example coverage
+- **Agent instruction sets** — constraint enforcement, edge cases, output format
 - **Runbooks & SOPs** — step completeness, error handling, clarity under stress
 
 ## Writing effective rubrics
@@ -566,13 +575,44 @@ autorefine sits at the intersection of autonomous agent loops and LLM-based eval
 - **vs. DSPy:** Optimizes the output document, not the prompt template. Runtime iterative, not compile-time.
 - **vs. TextGrad:** Structured rubric dimensions. Explicit quality gate. Convergence detection.
 
+## Case study: catching proprietary information leaks
+
+A fintech startup ran autorefine on their technical evaluation document — a whitepaper describing their RAG system's benchmark methodology. The document was well-written (4/5 dimensions passing at baseline) but had one critical gap: it leaked proprietary implementation details.
+
+**The problem:** The document exposed exact algorithm parameters (retrieval fusion weights, clustering configuration values), internal database schema details (driver names, function signatures, connection pooling config), internal repository URLs, container names, and environment variable names. A technical competitor could reconstruct key parts of the system from the document alone.
+
+**What autorefine did:**
+- Added an `information_security` dimension: "Communicates capabilities without revealing how to replicate them"
+- **Iteration 1 (DISCARD):** Over-abstracted the reproduction section — removed all concrete commands, which broke the `reproducibility` dimension. The keep/discard gate caught this automatically.
+- **Iteration 2 (KEEP):** Found the right balance — abstracted implementation parameters while keeping reproduction commands concrete with placeholder identifiers. 14 specific changes: algorithm parameters removed, database internals abstracted, internal URLs replaced with access-request emails, environment variable names generalized.
+- **Converged at 100%** (all dimensions passing) after 6 total iterations.
+
+**Result:** 14 proprietary details caught and fixed. Total cost: $0.12. Total time: ~20 minutes unattended. The keep/discard gate was critical — it prevented the over-abstraction that a one-shot edit would have shipped without feedback.
+
+**Key insight:** The agent caught leaks a human reviewer missed — not because the human was careless, but because checking "does this table cell contain a proprietary parameter?" across 50+ data points is exactly the kind of systematic, dimension-specific sweep that an LLM judge excels at.
+
+## When to use autorefine (and when not to)
+
+**Use autorefine when:**
+- The artifact is **high-leverage** — system prompts, agent skills, product pages, evaluation docs where small changes have outsized impact
+- You need **auditability** — a git log of every change, what it improved, and what was rejected
+- You need **regression protection** — improving one dimension without silently degrading another
+- You can **walk away** — the loop runs unattended while you do other work
+- Quality is **definable** — you can articulate pass/fail criteria for 3-5 dimensions
+
+**Don't use autorefine when:**
+- You need a **quick one-pass improvement** — just ask Claude/ChatGPT directly. 5 minutes, ~$0.10, good enough for most cases.
+- The document needs a **full rewrite**, not iterative refinement
+- Quality depends on **external validation** (user testing, conversion rates, code correctness) that an LLM judge can't measure
+- The artifact is **too short** to benefit from multi-dimensional evaluation (a 3-sentence bio doesn't need 10 iterations)
+
 ## FAQ
 
 **How many iterations does it take?**
-Depends on the artifact and rubric. Typically 10-30 iterations for meaningful improvement. The convergence detector stops the loop when scores plateau.
+Typically 3-10 iterations for meaningful improvement. The convergence detector stops when scores plateau. Default max is 10 — diminishing returns set in after that.
 
 **How much does it cost?**
-~$0.10-0.30 per iteration with GPT-4o (binary mode, 4-5 dimensions, N=3). A full run of 30 iterations costs ~$3-9. Budget cap defaults to $30.
+~$0.60-2.30 per iteration (judge + refiner combined). A typical run of 5-10 iterations costs $3-23. Budget cap defaults to $30.
 
 **Can I use local models?**
 Yes, via Ollama. Set `OLLAMA_BASE_URL` in .env. Quality depends on the model — larger models make better judges.
@@ -588,6 +628,9 @@ Run `calibrate.py` with known-quality variants before starting. If the rubric ra
 
 **What if the agent makes the document worse?**
 It can't — the keep/discard gate ensures the committed version only improves. Every rejected change is reverted via git. That said, "score goes up" may not always mean "actually better" — use checkpoint diffs to audit the trajectory.
+
+**Why not just ask Claude to improve my document?**
+For most cases, you should! A one-shot Claude edit is faster and cheaper. autorefine is for when you need the audit trail, regression protection, exhaustive optimization, and unattended execution that a single conversation doesn't provide.
 
 ## License
 
