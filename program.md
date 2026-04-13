@@ -32,6 +32,12 @@ Inspired by [karpathy/autoresearch](https://github.com/karpathy/autoresearch).
 
 ## The Loop
 
+The evaluation engine enforces git discipline mechanically:
+- It **refuses to run** if you have uncommitted artifact changes (forces you to commit first).
+- It **auto-reverts** on DISCARD or CONVERGED (you never need to run `git reset` yourself).
+
+Your job is just: **edit → commit → evaluate → read verdict → repeat.**
+
 LOOP FOREVER:
 
 1. Read the last evaluation: `tail -25 eval.log`
@@ -42,11 +48,11 @@ LOOP FOREVER:
 6. Read verdict: `grep "^verdict:" eval.log`
 7. Act on verdict:
    - **KEEP** — Change improved the score. Next iteration.
-   - **DISCARD** — Didn't help. Revert: `git reset --hard HEAD~1`
-   - **INVALID** — Placeholder removed or artifact broken. Revert and fix.
-   - **CONVERGED** — Scores plateaued. **Stop** and report final results.
+   - **DISCARD** — Auto-reverted. Your change was undone. Try a different approach.
+   - **INVALID** — Auto-reverted. A placeholder was removed or artifact is broken. Fix the issue.
+   - **CONVERGED** — Auto-reverted. Scores have plateaued. **Stop** and report final results.
    - **BASELINE** — First run recorded. Begin refining.
-8. If exit code 2 — infrastructure error (API timeout). Wait 30s, retry step 5. Do NOT discard.
+8. If exit code 2 — infrastructure error (API timeout). Wait 30s, retry step 5. Your change is still committed.
 9. Repeat from step 1.
 
 ## Strategy
@@ -69,6 +75,6 @@ LOOP FOREVER:
 - **No padding.** Don't add boilerplate to game scores.
 - **No corporate voice.** Write like the person who built it — direct, specific, opinionated.
 - **Don't game the rubric.** Write for the actual human reader, not the judge prompt.
-- **Git discipline.** Always commit before evaluating. On DISCARD: `git reset --hard HEAD~1`. Never `git clean`.
+- **Git discipline.** Always commit before evaluating (evaluate.py enforces this). Reverts are automatic — never run `git reset` or `git clean` yourself.
 
 **NEVER STOP** unless the verdict is CONVERGED. Do not pause to ask the human. They may be away. If you run out of ideas, use `--verbose` to get per-dimension rationales, then try new angles.

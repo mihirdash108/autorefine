@@ -576,6 +576,27 @@ def main():
         print(f"ERROR: Budget cap ${args.budget_cap:.2f} reached (spent: ${state['cumulative_cost_usd']:.2f})")
         sys.exit(2)
 
+    # --- Enforce git discipline ---
+    if not args.baseline:
+        # Non-baseline runs MUST have clean working tree (all changes committed)
+        try:
+            status = subprocess.run(
+                ["git", "diff", "--name-only", "artifacts/"],
+                capture_output=True, text=True, cwd=ROOT_DIR,
+            )
+            staged = subprocess.run(
+                ["git", "diff", "--cached", "--name-only", "artifacts/"],
+                capture_output=True, text=True, cwd=ROOT_DIR,
+            )
+            uncommitted = (status.stdout.strip() + "\n" + staged.stdout.strip()).strip()
+            if uncommitted:
+                print("ERROR: Uncommitted changes in artifacts/. Commit before evaluating.")
+                print("  git add artifacts/ && git commit -m 'description of change'")
+                print("verdict:             INVALID")
+                sys.exit(1)
+        except FileNotFoundError:
+            pass  # Not a git repo — skip check
+
     # --- Discover artifacts ---
     artifact_configs = rubric.get("artifacts", {})
     artifact_files = sorted(f for f in ARTIFACTS_DIR.glob("*") if f.is_file() and not f.name.startswith("."))
@@ -766,6 +787,17 @@ def main():
 
     if verdict in ("KEEP", "BASELINE"):
         save_checkpoint_snapshot(iteration, verdict)
+
+    # --- Auto-revert on DISCARD or CONVERGED ---
+    if verdict in ("DISCARD", "CONVERGED"):
+        try:
+            subprocess.run(
+                ["git", "reset", "--hard", "HEAD~1"],
+                capture_output=True, text=True, cwd=ROOT_DIR,
+            )
+            print(f"Auto-reverted: git reset --hard HEAD~1")
+        except FileNotFoundError:
+            print("WARNING: Could not auto-revert (git not found). Revert manually.")
 
     cross_doc_score = 0.0
     if cross_doc_result:
