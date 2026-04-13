@@ -47,6 +47,7 @@ CHECKPOINTS_DIR = ROOT_DIR / "checkpoints"
 RUBRIC_PATH = ROOT_DIR / "rubric.yaml"
 STATE_PATH = ROOT_DIR / "eval_state.json"
 RESULTS_PATH = ROOT_DIR / "results.tsv"
+HISTORY_PATH = ROOT_DIR / "eval_history.jsonl"
 BASELINE_SNAPSHOTS_PATH = ROOT_DIR / ".baseline_placeholders.json"
 
 MIN_ARTIFACT_BYTES = 100
@@ -538,6 +539,12 @@ def append_results_tsv(row):
         )
 
 
+def append_history(entry):
+    """Append a rich JSON entry to eval_history.jsonl for dashboard consumption."""
+    with open(HISTORY_PATH, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
 def compute_cost(model, input_tokens, output_tokens):
     profile = COST_PROFILES.get(model, COST_PROFILES["default"])
     return (input_tokens / 1_000_000) * profile["input"] + (output_tokens / 1_000_000) * profile["output"]
@@ -775,6 +782,36 @@ def main():
     if iteration > 0 and iteration % 10 == 0:
         create_checkpoint_tag(iteration, combined_score)
         print(f"Created checkpoint tag: checkpoint-{iteration}")
+
+    # --- Append rich history for dashboard ---
+    from datetime import datetime, timezone
+    dim_scores_flat = {}
+    for af_name, ar in artifact_results.items():
+        for dn, dr in ar["dims"].items():
+            key = f"{af_name}:{dn}"
+            if eval_mode == "binary":
+                dim_scores_flat[key] = 1 if dr["passed"] else 0
+            else:
+                dim_scores_flat[key] = dr.get("score", 0)
+
+    append_history({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "iteration": iteration,
+        "combined_score": round(combined_score, 4),
+        "artifact_scores": {n: round(ar["score"], 4) for n, ar in artifact_results.items()},
+        "dimension_scores": dim_scores_flat,
+        "cross_doc": round(cross_doc_score, 4),
+        "verdict": verdict,
+        "eval_cost_usd": round(eval_cost, 4),
+        "cumulative_cost_usd": round(state["cumulative_cost_usd"], 4),
+        "input_tokens": total_inp,
+        "output_tokens": total_out,
+        "total_tokens": total_inp + total_out,
+        "word_counts": {n: ar["word_count"] for n, ar in artifact_results.items()},
+        "eval_mode": eval_mode,
+        "model": model,
+        "commit": get_git_commit(),
+    })
 
     sys.exit(0)
 

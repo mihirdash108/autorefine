@@ -1,6 +1,7 @@
 .env
 eval.log
 eval_state.json
+eval_history.jsonl
 results.tsv
 checkpoints/
 .baseline_placeholders.json
