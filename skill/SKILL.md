@@ -52,13 +52,24 @@ Run `bash` to check prerequisites:
 If .env is missing: "Missing .env — copy .env.example and add your API key."
 If no artifacts (other than example.md): "No artifacts in artifacts/. Add your documents first."
 
-### Step 4: Create git branch
+### Step 4: Create git branch + worktree
 
-Generate a branch tag from today's date (e.g., `autorefine/apr13`). If the branch exists, try `autorefine/apr13-2`, `-3`, etc. Create the branch:
+Generate a branch tag from today's date (e.g., `autorefine/apr13`). If the branch exists, try `autorefine/apr13-2`, `-3`, etc.
+
+Create the branch and a git worktree so the background agent works in an isolated copy — the user's working tree stays untouched:
 
 ```bash
-cd PROJECT_ROOT && git checkout -b autorefine/<tag>
+cd PROJECT_ROOT && git branch autorefine/<tag>
+cd PROJECT_ROOT && git worktree add .autorefine-worktree autorefine/<tag>
 ```
+
+Copy the .env file to the worktree (it's gitignored so it won't be in the branch):
+
+```bash
+cp PROJECT_ROOT/.env PROJECT_ROOT/.autorefine-worktree/.env
+```
+
+All subsequent commands (baseline, evaluate, dashboard) run in `.autorefine-worktree/`, NOT in PROJECT_ROOT. Store `WORKTREE_PATH = PROJECT_ROOT/.autorefine-worktree`.
 
 ### Step 5: Git tag for rollback
 
@@ -68,13 +79,13 @@ cd PROJECT_ROOT && git tag pre-autorefine/<tag>
 
 ### Step 6: Start dashboard
 
-Kill any existing dashboard on port 8501, then start a new one:
+Kill any existing dashboard on port 8501, then start a new one (from the worktree):
 
 ```bash
-lsof -ti:8501 | xargs kill 2>/dev/null; cd PROJECT_ROOT && uv run dashboard.py --no-open &
+lsof -ti:8501 | xargs kill 2>/dev/null; cd WORKTREE_PATH && uv run dashboard.py --no-open &
 ```
 
-Record the PID. Open the browser:
+Open the browser:
 
 ```bash
 open http://localhost:8501
@@ -82,8 +93,10 @@ open http://localhost:8501
 
 ### Step 7: Run baseline
 
+Run baseline in the worktree:
+
 ```bash
-cd PROJECT_ROOT && uv run evaluate.py --baseline > eval.log 2>&1
+cd WORKTREE_PATH && uv run evaluate.py --baseline > eval.log 2>&1
 ```
 
 Read `eval.log` (tail -25) and show the baseline scores to the user.
@@ -102,14 +115,14 @@ Tell the user: "Estimated cost for 30 iterations: ~$20-70 total (judge + refiner
 Write `.autorefine.lock`:
 
 ```json
-{"started": "<timestamp>", "branch": "autorefine/<tag>", "dashboard_port": 8501, "project_root": "<path>"}
+{"started": "<timestamp>", "branch": "autorefine/<tag>", "dashboard_port": 8501, "project_root": "<path>", "worktree_path": "<worktree_path>"}
 ```
 
 ### Step 10: Spawn background supervisor
 
 Read the file `references/supervisor-prompt.md` from the skill directory (use the Glob tool to find `~/.claude/skills/autorefine/references/supervisor-prompt.md`). Inject these values into the template:
 
-- `{project_root}` → PROJECT_ROOT absolute path
+- `{project_root}` → WORKTREE_PATH absolute path (the worktree, where all work happens)
 - `{branch}` → the branch name created in step 4
 - `{baseline_scores}` → the baseline scores from step 7 (tail -25 of eval.log)
 - `{max_iterations}` → 30 (default)
@@ -144,10 +157,11 @@ Tell the user:
 ## Handler: /autorefine stop
 
 1. Find PROJECT_ROOT
-2. Read `.autorefine.lock` for dashboard port
+2. Read `.autorefine.lock` for dashboard port and worktree path
 3. Kill dashboard: `lsof -ti:<port> | xargs kill 2>/dev/null`
 4. Remove `.autorefine.lock`
-5. Report: "autorefine stopped. Results so far in results.tsv. Branch: <branch>."
+5. Clean up worktree (optional — ask user): `cd PROJECT_ROOT && git worktree remove .autorefine-worktree`
+6. Report: "autorefine stopped. Results in .autorefine-worktree/results.tsv. Branch: <branch>. To merge: `git merge <branch>`"
 
 Note: The background agent will naturally stop when its context ends or on the next iteration when it can't acquire the eval lock.
 
