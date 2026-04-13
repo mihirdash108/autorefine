@@ -23,12 +23,14 @@ LOOP:
   1. Agent reads per-dimension scores, identifies weakest dimension
   2. Agent makes ONE targeted edit to the artifact
   3. Agent commits and runs evaluate.py
-  4. evaluate.py scores the artifact, compares to previous best
-  5. If improved → KEEP (advance). If not → DISCARD (git reset)
+  4. evaluate.py scores, compares to previous best, and renders a verdict
+  5. KEEP → advance. DISCARD → auto-reverted. CONVERGED → stop.
   6. Repeat until CONVERGED
 ```
 
-Every accepted change is a git commit. Every rejected change is reverted. The full experiment history lives in `results.tsv`. Artifact snapshots are saved in `checkpoints/` on every KEEP so you can diff any two versions.
+The protocol is **mechanically enforced** — evaluate.py refuses to run with uncommitted changes and auto-reverts on DISCARD. The agent can't make a protocol mistake.
+
+Every accepted change is a git commit. Every rejected change is automatically reverted. The full experiment history lives in `results.tsv`. Artifact snapshots are saved in `checkpoints/` on every KEEP so you can diff any two versions.
 
 **No GPU required.** Unlike autoresearch (which needs an H100), autorefine only needs an LLM API key. Runs on any machine.
 
